@@ -1,0 +1,19 @@
+{
+  "buildCommand": "npm run web:export",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/resolve.ts": {
+      "includeFiles": ".bin/yt-dlp"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
