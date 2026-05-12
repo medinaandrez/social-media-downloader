@@ -38,11 +38,10 @@ import { t } from '@/i18n/translations';
 import { downloadResolvedFormat } from '@/services/downloads';
 import { resolveMedia } from '@/services/resolver';
 import { detectPlatform, platforms } from '@/shared/platforms';
-import type { DownloadFormat, HistoryItem, MediaKind, PlatformId, Quality, ResolvedMedia } from '@/shared/types';
+import type { DownloadFormat, HistoryItem, MediaKind, PlatformId, ResolvedMedia } from '@/shared/types';
 import type { Theme } from '@/theme/palette';
 import { makeHistoryItem } from '@/utils/history';
 
-const qualities: Quality[] = ['high', 'medium', 'low'];
 const mediaKinds: MediaKind[] = ['video', 'audio'];
 type ActionPhase = 'idle' | 'preparing' | 'audio';
 
@@ -55,7 +54,6 @@ export default function HomeScreen() {
 
   const [url, setUrl] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformId | 'auto'>('auto');
-  const [selectedQuality, setSelectedQuality] = useState<Quality>('high');
   const [selectedKind, setSelectedKind] = useState<MediaKind>('video');
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
   const [resolved, setResolved] = useState<ResolvedMedia | null>(null);
@@ -119,13 +117,13 @@ export default function HomeScreen() {
       });
       setResolved(media);
       setSelectedPlatform(media.platform);
-      const preferred = pickPreferredFormat(media.formats, selectedKind, selectedQuality);
+      const preferred = pickPreferredFormat(media.formats, selectedKind);
       setSelectedFormatId(preferred?.id ?? null);
       if (!preferred) {
         const nextFormat = media.formats[0];
         if (nextFormat) {
           setSelectedKind(nextFormat.kind);
-          setSelectedQuality(nextFormat.quality);
+          setSelectedFormatId(nextFormat.id);
         }
       }
     } catch (error) {
@@ -140,9 +138,9 @@ export default function HomeScreen() {
     () => {
       const formats = resolved?.formats ?? [];
       return formats.find((format) => format.id === selectedFormatId && format.kind === selectedKind)
-        ?? pickPreferredFormat(formats, selectedKind, selectedQuality);
+        ?? pickPreferredFormat(formats, selectedKind);
     },
-    [resolved, selectedFormatId, selectedKind, selectedQuality],
+    [resolved, selectedFormatId, selectedKind],
   );
 
   const visibleFormats = useMemo(
@@ -291,17 +289,6 @@ export default function HomeScreen() {
             styles={styles}
             theme={theme}
           />
-          <SegmentedControl
-            labels={{ high: t(language, 'high'), medium: t(language, 'medium'), low: t(language, 'low') }}
-            onChange={(quality) => {
-              setSelectedQuality(quality);
-              setSelectedFormatId(null);
-            }}
-            options={qualities}
-            selected={selectedQuality}
-            styles={styles}
-            theme={theme}
-          />
         </View>
 
         {resolved ? (
@@ -339,7 +326,6 @@ export default function HomeScreen() {
                           key={format.id}
                           onPress={() => {
                             setSelectedFormatId(format.id);
-                            setSelectedQuality(format.quality);
                           }}
                           style={[styles.formatButton, active && styles.formatButtonActive]}
                         >
@@ -550,9 +536,8 @@ function HistoryRow({
   );
 }
 
-function pickPreferredFormat(formats: DownloadFormat[], kind: MediaKind, quality: Quality) {
-  return formats.find((format) => format.kind === kind && format.quality === quality)
-    ?? formats.find((format) => format.kind === kind)
+function pickPreferredFormat(formats: DownloadFormat[], kind: MediaKind) {
+  return formats.find((format) => format.kind === kind)
     ?? formats[0];
 }
 
