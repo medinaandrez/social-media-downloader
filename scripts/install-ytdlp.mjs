@@ -5,7 +5,8 @@ import { pipeline } from 'node:stream/promises';
 import https from 'node:https';
 
 const target = join(process.cwd(), '.bin', platform() === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
-const force = process.argv.includes('--force') || process.env.YTDLP_FORCE_INSTALL === '1';
+const isVercelBuild = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const force = process.argv.includes('--force') || process.env.YTDLP_FORCE_INSTALL === '1' || isVercelBuild;
 
 if (existsSync(target) && !force) {
   console.log(`yt-dlp already installed at ${target}`);
