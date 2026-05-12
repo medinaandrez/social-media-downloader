@@ -24,7 +24,11 @@ export async function resolveMedia(request: ResolveRequest) {
       }
       return payload.media;
     } catch (error) {
-      if (error instanceof ResolveApiError || (error instanceof Error && endpoint !== '/api/resolve')) {
+      if (
+        error instanceof ResolveApiError
+        || (error instanceof Error && endpoint !== '/api/resolve')
+        || !canUseLocalPreviewFallback()
+      ) {
         throw error;
       }
 
@@ -37,6 +41,14 @@ export async function resolveMedia(request: ResolveRequest) {
 }
 
 class ResolveApiError extends Error {}
+
+function canUseLocalPreviewFallback() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return true;
+  }
+
+  return ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+}
 
 function getApiBaseUrl() {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
