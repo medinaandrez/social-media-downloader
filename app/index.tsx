@@ -44,6 +44,7 @@ import { makeHistoryItem } from '@/utils/history';
 
 const qualities: Quality[] = ['high', 'medium', 'low'];
 const mediaKinds: MediaKind[] = ['video', 'audio'];
+type ActionPhase = 'idle' | 'preparing' | 'audio';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -61,6 +62,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [actionFormat, setActionFormat] = useState<DownloadFormat | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [actionPhase, setActionPhase] = useState<ActionPhase>('idle');
 
   const copyFromClipboard = async () => {
     try {
@@ -154,6 +156,7 @@ export default function HomeScreen() {
 
   const handleOpenActions = () => {
     if (resolved && selectedFormat) {
+      setActionPhase('idle');
       setActionFormat(selectedFormat);
     }
   };
@@ -164,11 +167,13 @@ export default function HomeScreen() {
     }
 
     setActionBusy(true);
+    setActionPhase(isGeneratedAudio(resolved, actionFormat) ? 'audio' : 'preparing');
     try {
       await downloadResolvedFormat({ media: resolved, format: actionFormat, mode, language });
       await addHistory(makeHistoryItem(resolved, actionFormat));
       setActionFormat(null);
-      Alert.alert(t(language, 'doneTitle'), t(language, mode === 'save' ? 'savedBody' : 'sharedBody'));
+      setActionPhase('idle');
+      Alert.alert(t(language, 'doneTitle'), doneMessageFor(mode, language));
     } catch (error) {
       const message = error instanceof Error ? error.message : t(language, 'genericError');
       Alert.alert(t(language, 'downloadErrorTitle'), message);
@@ -393,31 +398,45 @@ export default function HomeScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.actionSheet}>
             <Text style={styles.actionTitle}>{t(language, 'chooseAction')}</Text>
-            <Text style={styles.actionBody}>{t(language, 'chooseActionBody')}</Text>
-            <View style={styles.actionRow}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={actionBusy}
-                onPress={() => handleAction('save')}
-                style={[styles.sheetButton, actionBusy && styles.disabledButton]}
-              >
-                <Download color={theme.colors.onAccent} size={20} />
-                <Text style={styles.sheetButtonText}>{t(language, 'save')}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={actionBusy}
-                onPress={() => handleAction('share')}
-                style={[styles.sheetButtonSecondary, actionBusy && styles.disabledButton]}
-              >
-                <Share2 color={theme.colors.text} size={20} />
-                <Text style={styles.sheetButtonSecondaryText}>{t(language, 'share')}</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.actionBody}>
+              {actionBusy
+                ? t(language, actionPhase === 'audio' ? 'audioPreparingBody' : 'downloadPreparingBody')
+                : t(language, 'chooseActionBody')}
+            </Text>
+            {actionBusy ? (
+              <View style={styles.busyPanel}>
+                <ActivityIndicator color={theme.colors.accent} />
+                <Text style={styles.busyText}>{t(language, 'downloadPreparingTitle')}</Text>
+              </View>
+            ) : (
+              <View style={styles.actionRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={actionBusy}
+                  onPress={() => handleAction('save')}
+                  style={[styles.sheetButton, actionBusy && styles.disabledButton]}
+                >
+                  <Download color={theme.colors.onAccent} size={20} />
+                  <Text style={styles.sheetButtonText}>{t(language, 'save')}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={actionBusy}
+                  onPress={() => handleAction('share')}
+                  style={[styles.sheetButtonSecondary, actionBusy && styles.disabledButton]}
+                >
+                  <Share2 color={theme.colors.text} size={20} />
+                  <Text style={styles.sheetButtonSecondaryText}>{t(language, 'share')}</Text>
+                </Pressable>
+              </View>
+            )}
             <Pressable
               accessibilityRole="button"
               disabled={actionBusy}
-              onPress={() => setActionFormat(null)}
+              onPress={() => {
+                setActionPhase('idle');
+                setActionFormat(null);
+              }}
               style={styles.cancelButton}
             >
               <Text style={styles.cancelButtonText}>{t(language, 'cancel')}</Text>
@@ -539,6 +558,18 @@ function pickPreferredFormat(formats: DownloadFormat[], kind: MediaKind, quality
 
 function platformLabel(platform: PlatformId) {
   return platforms.find((item) => item.id === platform)?.label ?? platform;
+}
+
+function isGeneratedAudio(media: ResolvedMedia, format: DownloadFormat) {
+  return media.platform === 'twitter' && format.kind === 'audio' && format.downloadUrl?.startsWith('/api/audio');
+}
+
+function doneMessageFor(mode: 'save' | 'share', language: 'es' | 'en') {
+  if (Platform.OS === 'web' && mode === 'save') {
+    return t(language, 'webDownloadStarted');
+  }
+
+  return t(language, mode === 'save' ? 'savedBody' : 'sharedBody');
 }
 
 async function readClipboardText() {
@@ -970,6 +1001,23 @@ function makeStyles(theme: Theme, isCompact: boolean) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
+    },
+    busyPanel: {
+      alignItems: 'center',
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 10,
+      minHeight: 52,
+      paddingHorizontal: 14,
+    },
+    busyText: {
+      color: colors.text,
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '800',
     },
     sheetButton: {
       alignItems: 'center',

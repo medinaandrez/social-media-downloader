@@ -3,6 +3,7 @@ import type { Language } from '@/shared/types';
 const dictionary = {
   es: {
     audio: 'Audio',
+    audioPreparingBody: 'Estamos extrayendo el audio. En videos largos puede tomar un poco mas.',
     auto: 'Auto',
     cancel: 'Cancelar',
     chooseAction: 'Guardar o compartir',
@@ -15,6 +16,8 @@ const dictionary = {
     clipboardEmptyTitle: 'Portapapeles vacio',
     downloadButton: 'Descargar',
     downloadErrorTitle: 'No se pudo descargar',
+    downloadPreparingBody: 'Estamos preparando el archivo para enviarlo al navegador o al sistema.',
+    downloadPreparingTitle: 'Preparando descarga',
     dark: 'Oscuro',
     doneTitle: 'Listo',
     emptyBody: 'Pega un link publico de Twitter, Instagram, Facebook o TikTok.',
@@ -55,6 +58,7 @@ const dictionary = {
   },
   en: {
     audio: 'Audio',
+    audioPreparingBody: 'Extracting the audio. Longer videos may take a little more time.',
     auto: 'Auto',
     cancel: 'Cancel',
     chooseAction: 'Save or share',
@@ -67,6 +71,8 @@ const dictionary = {
     clipboardEmptyTitle: 'Clipboard is empty',
     downloadButton: 'Download',
     downloadErrorTitle: 'Download failed',
+    downloadPreparingBody: 'Preparing the file for the browser or system handoff.',
+    downloadPreparingTitle: 'Preparing download',
     dark: 'Dark',
     doneTitle: 'Done',
     emptyBody: 'Paste a public link from Twitter, Instagram, Facebook, or TikTok.',
