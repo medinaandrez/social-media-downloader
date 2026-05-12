@@ -19,7 +19,18 @@ export async function downloadResolvedFormat({ media, format, mode, language }: 
   }
 
   if (Platform.OS === 'web') {
-    startBrowserDownload(format.downloadUrl, fileNameFor(media, format));
+    const fileName = fileNameFor(media, format);
+    const downloadUrl = proxiedDownloadUrl(format.downloadUrl, fileName);
+
+    if (mode === 'share' && typeof navigator !== 'undefined' && navigator.share) {
+      await navigator.share({
+        title: media.title,
+        url: downloadUrl,
+      });
+      return;
+    }
+
+    startBrowserDownload(downloadUrl, fileName);
     return;
   }
 
@@ -59,9 +70,19 @@ function startBrowserDownload(url: string, fileName: string) {
   anchor.href = url;
   anchor.download = fileName;
   anchor.rel = 'noopener noreferrer';
+  anchor.target = '_self';
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
+}
+
+function proxiedDownloadUrl(url: string, fileName: string) {
+  const params = new URLSearchParams({
+    filename: fileName,
+    url,
+  });
+
+  return `/api/download?${params.toString()}`;
 }
 
 function fileNameFor(media: ResolvedMedia, format: DownloadFormat) {

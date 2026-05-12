@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import {
@@ -46,8 +47,10 @@ const mediaKinds: MediaKind[] = ['video', 'audio'];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { addHistory, history, language, theme } = useAppState();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const isCompact = width < 720;
+  const styles = useMemo(() => makeStyles(theme, isCompact), [isCompact, theme]);
 
   const [url, setUrl] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformId | 'auto'>('auto');
@@ -60,14 +63,23 @@ export default function HomeScreen() {
   const [actionBusy, setActionBusy] = useState(false);
 
   const copyFromClipboard = async () => {
-    const copiedText = await ExpoClipboard.getStringAsync();
-    if (copiedText) {
-      setUrl(copiedText.trim());
+    try {
+      const copiedText = await readClipboardText();
+      const cleanText = copiedText.trim();
+      if (!cleanText) {
+        Alert.alert(t(language, 'clipboardEmptyTitle'), t(language, 'clipboardEmptyBody'));
+        return;
+      }
+
+      setUrl(cleanText);
       setResolved(null);
-      const detected = detectPlatform(copiedText);
+      setSelectedFormatId(null);
+      const detected = detectPlatform(cleanText);
       if (detected) {
         setSelectedPlatform(detected);
       }
+    } catch {
+      Alert.alert(t(language, 'clipboardBlockedTitle'), t(language, 'clipboardBlockedBody'));
     }
   };
 
@@ -529,7 +541,15 @@ function platformLabel(platform: PlatformId) {
   return platforms.find((item) => item.id === platform)?.label ?? platform;
 }
 
-function makeStyles(theme: Theme) {
+async function readClipboardText() {
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+    return navigator.clipboard.readText();
+  }
+
+  return ExpoClipboard.getStringAsync();
+}
+
+function makeStyles(theme: Theme, isCompact: boolean) {
   const colors = theme.colors;
 
   return StyleSheet.create({
@@ -705,7 +725,7 @@ function makeStyles(theme: Theme) {
       borderColor: colors.border,
       borderRadius: 8,
       borderWidth: 1,
-      flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+      flexDirection: Platform.OS === 'web' && !isCompact ? 'row' : 'column',
       gap: 14,
       overflow: 'hidden',
       padding: 12,
@@ -715,7 +735,7 @@ function makeStyles(theme: Theme) {
       backgroundColor: colors.input,
       borderRadius: 8,
       overflow: 'hidden',
-      width: Platform.OS === 'web' ? 250 : '100%',
+      width: Platform.OS === 'web' && !isCompact ? 250 : '100%',
     },
     thumbnail: {
       height: '100%',
@@ -806,7 +826,7 @@ function makeStyles(theme: Theme) {
     },
     downloadButton: {
       alignItems: 'center',
-      alignSelf: 'flex-start',
+      alignSelf: isCompact ? 'stretch' : 'flex-start',
       backgroundColor: colors.accent,
       borderRadius: 8,
       flexDirection: 'row',
@@ -819,6 +839,7 @@ function makeStyles(theme: Theme) {
     },
     downloadButtonText: {
       color: colors.onAccent,
+      flexShrink: 1,
       fontSize: 15,
       fontWeight: '800',
     },
