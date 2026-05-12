@@ -79,6 +79,8 @@ function mapFormats(
       id: 'video-high',
       label: videoLabel(language, platform, 'high'),
       quality: 'high',
+      downloadUrl: platform === 'instagram' ? videoExtractionUrl(sourceUrl, 'high') : undefined,
+      extension: platform === 'instagram' ? 'mp4' : undefined,
     }));
   }
 
@@ -95,6 +97,8 @@ function mapFormats(
       id: 'video-low',
       label: videoLabel(language, platform, 'low'),
       quality: 'low',
+      downloadUrl: platform === 'instagram' ? videoExtractionUrl(sourceUrl, 'low') : undefined,
+      extension: platform === 'instagram' ? 'mp4' : undefined,
     }));
   }
 
@@ -136,6 +140,11 @@ function audioExtractionUrl(sourceUrl: string) {
   return `/api/audio?${params.toString()}`;
 }
 
+function videoExtractionUrl(sourceUrl: string, quality: 'high' | 'low') {
+  const params = new URLSearchParams({ url: sourceUrl, quality });
+  return `/api/video?${params.toString()}`;
+}
+
 function toDownloadFormat(
   format: Format,
   options: {
@@ -143,9 +152,11 @@ function toDownloadFormat(
     label: string;
     quality: DownloadFormat['quality'];
     kind?: DownloadFormat['kind'];
+    downloadUrl?: string;
+    extension?: string;
   },
 ): DownloadFormat {
-  const extension = normalizeExtension(format.ext);
+  const extension = normalizeExtension(options.extension ?? format.ext);
 
   return {
     id: options.id,
@@ -154,7 +165,7 @@ function toDownloadFormat(
     label: options.label,
     extension,
     mimeType: mimeTypeFor(extension, options.kind ?? 'video'),
-    downloadUrl: format.url,
+    downloadUrl: options.downloadUrl ?? format.url,
     status: 'ready',
   };
 }

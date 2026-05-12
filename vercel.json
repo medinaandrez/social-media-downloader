@@ -8,6 +8,10 @@
     },
     "api/resolve.ts": {
       "includeFiles": ".bin/yt-dlp"
+    },
+    "api/video.ts": {
+      "includeFiles": ".bin/yt-dlp",
+      "maxDuration": 60
     }
   },
   "rewrites": [
