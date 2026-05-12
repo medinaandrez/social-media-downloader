@@ -37,11 +37,12 @@ export async function extractWithYtDlp({ url, language, platform }: ExtractParam
     killSignal: 'SIGKILL',
   }) as Payload;
 
-  const formats = mapFormats(payload.formats ?? [], language, platform);
+  const sourceUrl = payload.webpage_url || url;
+  const formats = mapFormats(payload.formats ?? [], language, platform, sourceUrl);
 
   return {
     id: payload.id || `${payload.extractor_key}-${Date.now()}`,
-    sourceUrl: payload.webpage_url || url,
+    sourceUrl,
     platform,
     title: payload.title || titleFallback(language, platform),
     author: payload.uploader || payload.channel || undefined,
@@ -53,7 +54,12 @@ export async function extractWithYtDlp({ url, language, platform }: ExtractParam
   };
 }
 
-function mapFormats(formats: Format[], language: Language, platform: ExtractablePlatform): DownloadFormat[] {
+function mapFormats(
+  formats: Format[],
+  language: Language,
+  platform: ExtractablePlatform,
+  sourceUrl: string,
+): DownloadFormat[] {
   const videoFormats = formats
     .filter((format) => isDownloadable(format) && hasVideo(format))
     .sort((a, b) => scoreVideo(b) - scoreVideo(a));
@@ -99,6 +105,17 @@ function mapFormats(formats: Format[], language: Language, platform: Extractable
       quality: 'high',
       kind: 'audio',
     }));
+  } else if (bestVideo && platform === 'twitter') {
+    mapped.push({
+      id: 'audio-high',
+      kind: 'audio',
+      quality: 'high',
+      label: language === 'es' ? 'Audio' : 'Audio',
+      extension: 'mp4',
+      mimeType: 'audio/mp4',
+      downloadUrl: audioExtractionUrl(sourceUrl),
+      status: 'ready',
+    });
   } else if (bestVideo) {
     mapped.push({
       id: 'audio-high',
@@ -112,6 +129,11 @@ function mapFormats(formats: Format[], language: Language, platform: Extractable
   }
 
   return mapped;
+}
+
+function audioExtractionUrl(sourceUrl: string) {
+  const params = new URLSearchParams({ url: sourceUrl });
+  return `/api/audio?${params.toString()}`;
 }
 
 function toDownloadFormat(

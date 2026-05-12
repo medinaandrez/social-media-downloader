@@ -2,6 +2,10 @@
   "buildCommand": "npm run web:export",
   "outputDirectory": "dist",
   "functions": {
+    "api/audio.ts": {
+      "includeFiles": ".bin/yt-dlp",
+      "maxDuration": 60
+    },
     "api/resolve.ts": {
       "includeFiles": ".bin/yt-dlp"
     }
