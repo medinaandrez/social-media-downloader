@@ -1,10 +1,13 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 
 import { t } from '@/i18n/translations';
 import type { DownloadFormat, Language, ResolvedMedia } from '@/shared/types';
+
+const productionApiBaseUrl = 'https://socialm-downloader.vercel.app';
 
 type DownloadParams = {
   media: ResolvedMedia;
@@ -62,7 +65,7 @@ async function downloadToCache(media: ResolvedMedia, format: DownloadFormat) {
   }
 
   const target = `${FileSystem.cacheDirectory}${fileNameFor(media, format)}`;
-  const result = await FileSystem.downloadAsync(format.downloadUrl!, target);
+  const result = await FileSystem.downloadAsync(nativeDownloadUrl(format.downloadUrl!), target);
   return result.uri;
 }
 
@@ -94,6 +97,20 @@ function absoluteWebUrl(url: string) {
   }
 
   return `${window.location.origin}${url}`;
+}
+
+function nativeDownloadUrl(url: string) {
+  if (!url.startsWith('/')) {
+    return url;
+  }
+
+  return `${getApiBaseUrl()}${url}`;
+}
+
+function getApiBaseUrl() {
+  const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
+  const fromExpo = Constants.expoConfig?.extra?.apiBaseUrl;
+  return String(fromEnv || fromExpo || productionApiBaseUrl).replace(/\/$/, '');
 }
 
 function proxiedDownloadUrl(url: string, fileName: string) {

@@ -5,6 +5,8 @@ import { t } from '@/i18n/translations';
 import { isSupportedPublicUrl } from '@/shared/platforms';
 import type { DownloadFormat, ResolveRequest, ResolveResponse, ResolvedMedia } from '@/shared/types';
 
+const productionApiBaseUrl = 'https://socialm-downloader.vercel.app';
+
 export async function resolveMedia(request: ResolveRequest) {
   const apiBaseUrl = getApiBaseUrl();
   const endpoint = apiBaseUrl ? `${apiBaseUrl}/api/resolve` : Platform.OS === 'web' ? '/api/resolve' : null;
@@ -53,7 +55,8 @@ function canUseLocalPreviewFallback() {
 function getApiBaseUrl() {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   const fromExpo = Constants.expoConfig?.extra?.apiBaseUrl;
-  return String(fromEnv || fromExpo || '').replace(/\/$/, '');
+  const fallback = Platform.OS === 'web' ? '' : productionApiBaseUrl;
+  return String(fromEnv || fromExpo || fallback).replace(/\/$/, '');
 }
 
 function createLocalPreview(request: ResolveRequest): ResolvedMedia {

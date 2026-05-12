@@ -32,7 +32,7 @@
       "bundler": "metro"
     },
     "extra": {
-      "apiBaseUrl": ""
+      "apiBaseUrl": "https://socialm-downloader.vercel.app"
     },
     "plugins": [
       "expo-router"
