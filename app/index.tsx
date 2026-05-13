@@ -117,13 +117,17 @@ export default function HomeScreen() {
       });
       setResolved(media);
       setSelectedPlatform(media.platform);
-      const preferred = pickPreferredFormat(media.formats, selectedKind);
-      setSelectedFormatId(preferred?.id ?? null);
-      if (!preferred) {
-        const nextFormat = media.formats[0];
+      const preferred = pickPreferredDownloadableFormat(media.formats, selectedKind);
+      if (preferred) {
+        setSelectedKind(preferred.kind);
+        setSelectedFormatId(preferred.id);
+      } else {
+        const nextFormat = firstDownloadableFormat(media.formats);
         if (nextFormat) {
           setSelectedKind(nextFormat.kind);
           setSelectedFormatId(nextFormat.id);
+        } else {
+          setSelectedFormatId(null);
         }
       }
     } catch (error) {
@@ -137,15 +141,21 @@ export default function HomeScreen() {
   const selectedFormat = useMemo(
     () => {
       const formats = resolved?.formats ?? [];
-      return formats.find((format) => format.id === selectedFormatId && format.kind === selectedKind)
-        ?? pickPreferredFormat(formats, selectedKind);
+      return formats.find((format) => format.id === selectedFormatId && format.kind === selectedKind && isDownloadableFormat(format))
+        ?? pickPreferredDownloadableFormat(formats, selectedKind);
     },
     [resolved, selectedFormatId, selectedKind],
   );
 
   const visibleFormats = useMemo(
-    () => (resolved?.formats ?? []).filter((format) => format.kind === selectedKind),
+    () => (resolved?.formats ?? []).filter((format) => format.kind === selectedKind && isDownloadableFormat(format)),
     [resolved, selectedKind],
+  );
+  const disabledMediaKinds = useMemo(
+    () => resolved
+      ? mediaKinds.filter((kind) => !hasDownloadableFormat(resolved.formats, kind))
+      : [],
+    [resolved],
   );
 
   const detectedPlatform = useMemo(() => detectPlatform(url), [url]);
@@ -286,6 +296,7 @@ export default function HomeScreen() {
             }}
             options={mediaKinds}
             selected={selectedKind}
+            disabledOptions={disabledMediaKinds}
             styles={styles}
             theme={theme}
           />
@@ -340,16 +351,18 @@ export default function HomeScreen() {
                     })}
                   </View>
                 </View>
-              ) : null}
+              ) : (
+                <Text style={styles.unavailableText}>{t(language, 'formatUnavailable')}</Text>
+              )}
               <Pressable
                 accessibilityRole="button"
-                disabled={!selectedFormat?.downloadUrl}
+                disabled={!selectedFormat}
                 onPress={handleOpenActions}
-                style={[styles.downloadButton, !selectedFormat?.downloadUrl && styles.disabledButton]}
+                style={[styles.downloadButton, !selectedFormat && styles.disabledButton]}
               >
                 <Download color={theme.colors.onAccent} size={20} />
                 <Text style={styles.downloadButtonText}>
-                  {selectedFormat?.downloadUrl ? t(language, 'downloadButton') : t(language, 'extractorPending')}
+                  {selectedFormat ? t(language, 'downloadButton') : t(language, 'extractorPending')}
                 </Text>
               </Pressable>
             </View>
@@ -459,6 +472,7 @@ function PlatformButton({
 }
 
 function SegmentedControl<T extends string>({
+  disabledOptions = [],
   icons,
   labels,
   onChange,
@@ -467,6 +481,7 @@ function SegmentedControl<T extends string>({
   styles,
   theme,
 }: {
+  disabledOptions?: T[];
   icons?: Partial<Record<T, LucideIcon>>;
   labels: Record<T, string>;
   onChange: (value: T) => void;
@@ -480,12 +495,14 @@ function SegmentedControl<T extends string>({
       {options.map((option) => {
         const Icon = icons?.[option];
         const active = selected === option;
+        const disabled = disabledOptions.includes(option);
         return (
           <Pressable
             accessibilityRole="button"
+            disabled={disabled}
             key={option}
             onPress={() => onChange(option)}
-            style={[styles.segmentButton, active && styles.segmentButtonActive]}
+            style={[styles.segmentButton, active && styles.segmentButtonActive, disabled && styles.segmentButtonDisabled]}
           >
             {Icon ? (
               <SegmentIcon
@@ -493,7 +510,9 @@ function SegmentedControl<T extends string>({
                 color={active ? theme.colors.onAccent : theme.colors.mutedText}
               />
             ) : null}
-            <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{labels[option]}</Text>
+            <Text style={[styles.segmentText, active && styles.segmentTextActive, disabled && styles.segmentTextDisabled]}>
+              {labels[option]}
+            </Text>
           </Pressable>
         );
       })}
@@ -536,9 +555,21 @@ function HistoryRow({
   );
 }
 
-function pickPreferredFormat(formats: DownloadFormat[], kind: MediaKind) {
-  return formats.find((format) => format.kind === kind)
-    ?? formats[0];
+function pickPreferredDownloadableFormat(formats: DownloadFormat[], kind: MediaKind) {
+  return formats.find((format) => format.kind === kind && isDownloadableFormat(format))
+    ?? firstDownloadableFormat(formats);
+}
+
+function firstDownloadableFormat(formats: DownloadFormat[]) {
+  return formats.find(isDownloadableFormat);
+}
+
+function hasDownloadableFormat(formats: DownloadFormat[], kind: MediaKind) {
+  return formats.some((format) => format.kind === kind && isDownloadableFormat(format));
+}
+
+function isDownloadableFormat(format: DownloadFormat) {
+  return format.status === 'ready' && Boolean(format.downloadUrl);
 }
 
 function platformLabel(platform: PlatformId) {
@@ -728,6 +759,9 @@ function makeStyles(theme: Theme, isCompact: boolean) {
     segmentButtonActive: {
       backgroundColor: colors.accent,
     },
+    segmentButtonDisabled: {
+      opacity: 0.42,
+    },
     segmentText: {
       color: colors.mutedText,
       fontSize: 13,
@@ -735,6 +769,9 @@ function makeStyles(theme: Theme, isCompact: boolean) {
     },
     segmentTextActive: {
       color: colors.onAccent,
+    },
+    segmentTextDisabled: {
+      color: colors.mutedText,
     },
     previewCard: {
       backgroundColor: colors.surface,
@@ -798,6 +835,12 @@ function makeStyles(theme: Theme, isCompact: boolean) {
     },
     notice: {
       color: colors.warning,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+    unavailableText: {
+      color: colors.mutedText,
       fontSize: 13,
       fontWeight: '700',
       lineHeight: 18,
