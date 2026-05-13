@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "web:export": "expo export --platform web",
     "typecheck": "tsc --noEmit",
+    "smoke:api": "node scripts/smoke-api.mjs",
     "api:dev": "tsx scripts/dev-api.ts",
     "server:install-ytdlp": "node scripts/install-ytdlp.mjs"
   },
