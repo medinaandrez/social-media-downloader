@@ -6,21 +6,27 @@ const messages = {
   es: {
     invalidMethod: 'Metodo no permitido.',
     invalidUrl: 'El link no es valido.',
+    accessRequired: 'La plataforma no entrego este contenido sin iniciar sesion. Prueba otro video publico accesible sin login.',
     extractionFailed: 'No se pudo obtener el video publico. Verifica que el link exista, sea publico y no tenga restricciones.',
     instagramAccessRequired: 'Instagram no entrego este contenido sin sesion. Prueba otro post/reel publico accesible sin iniciar sesion.',
     noDownloadUrl: 'Extractor pendiente para esta plataforma. La app ya tiene el contrato listo para recibir URLs descargables.',
     platformMismatch: 'La plataforma elegida no coincide con el link.',
     publicProfile: 'Perfil publico',
+    timeout: 'La plataforma tardo demasiado en responder. Intenta de nuevo o prueba un video mas corto.',
+    unavailable: 'No se pudo acceder a ese video. Puede estar privado, eliminado, bloqueado por region o requerir iniciar sesion.',
     unsupportedPlatform: 'Esta plataforma todavia no esta soportada.',
   },
   en: {
     invalidMethod: 'Method not allowed.',
     invalidUrl: 'The link is not valid.',
+    accessRequired: 'The platform did not provide this content without signing in. Try another public video available without login.',
     extractionFailed: 'Could not read the public video. Check that the link exists, is public, and has no restrictions.',
     instagramAccessRequired: 'Instagram did not provide this content without a session. Try another public post/reel that is accessible without signing in.',
     noDownloadUrl: 'Extractor pending for this platform. The app contract is ready to receive downloadable URLs.',
     platformMismatch: 'The selected platform does not match the link.',
     publicProfile: 'Public profile',
+    timeout: 'The platform took too long to respond. Try again or use a shorter video.',
+    unavailable: 'Could not access that video. It may be private, deleted, region-blocked, or require signing in.',
     unsupportedPlatform: 'This platform is not supported yet.',
   },
 } satisfies Record<Language, Record<string, string>>;
@@ -64,12 +70,10 @@ export async function resolveMediaRequest(body: Partial<ResolveRequest>): Promis
     } catch (error) {
       console.error(`${validation.platform} extraction failed`, error);
       return {
-        status: 422,
+        status: extractionStatusFor(error),
         payload: {
           ok: false,
-          error: validation.platform === 'instagram' && isAnonymousInstagramAccessError(error)
-            ? messages[language].instagramAccessRequired
-            : messages[language].extractionFailed,
+          error: extractionMessageFor(error, validation.platform, language),
         },
       };
     }
@@ -112,6 +116,61 @@ function isAnonymousInstagramAccessError(error: unknown) {
   return normalized.includes('empty media response')
     || normalized.includes('without being logged-in')
     || normalized.includes('login required');
+}
+
+function extractionMessageFor(error: unknown, platform: PlatformId, language: Language) {
+  if (platform === 'instagram' && isAnonymousInstagramAccessError(error)) {
+    return messages[language].instagramAccessRequired;
+  }
+
+  const details = errorDetails(error);
+  if (isAccessRequiredError(details)) {
+    return messages[language].accessRequired;
+  }
+  if (isUnavailableError(details)) {
+    return messages[language].unavailable;
+  }
+  if (isTimeoutError(details)) {
+    return messages[language].timeout;
+  }
+
+  return messages[language].extractionFailed;
+}
+
+function extractionStatusFor(error: unknown) {
+  return isTimeoutError(errorDetails(error)) ? 504 : 422;
+}
+
+function errorDetails(error: unknown) {
+  return error instanceof Error ? `${error.message} ${'stderr' in error ? String(error.stderr) : ''}` : String(error);
+}
+
+function isAccessRequiredError(details: string) {
+  const normalized = details.toLowerCase();
+  return normalized.includes('login')
+    || normalized.includes('log in')
+    || normalized.includes('sign in')
+    || normalized.includes('cookies')
+    || normalized.includes('not currently available')
+    || normalized.includes('confirm your age');
+}
+
+function isUnavailableError(details: string) {
+  const normalized = details.toLowerCase();
+  return normalized.includes('private')
+    || normalized.includes('removed')
+    || normalized.includes('unavailable')
+    || normalized.includes('not found')
+    || normalized.includes('blocked')
+    || normalized.includes('copyright')
+    || normalized.includes('unsupported url');
+}
+
+function isTimeoutError(details: string) {
+  const normalized = details.toLowerCase();
+  return normalized.includes('timed out')
+    || normalized.includes('timeout')
+    || normalized.includes('socket');
 }
 
 function createPendingFormats(): DownloadFormat[] {

@@ -8,6 +8,20 @@ import { spawn } from 'node:child_process';
 
 const maxVideoBytes = 90 * 1024 * 1024;
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+const messages = {
+  es: {
+    invalidUrl: 'El link de video no es valido.',
+    prepareFailed: 'No se pudo preparar el video. Puede estar privado, requerir login o tener una restriccion de la plataforma.',
+    tooLarge: 'El video es demasiado grande para descargarlo desde esta version.',
+    timeout: 'La preparacion del video tardo demasiado. Intenta con un video mas corto.',
+  },
+  en: {
+    invalidUrl: 'The video link is not valid.',
+    prepareFailed: 'Could not prepare the video. It may be private, require login, or have a platform restriction.',
+    tooLarge: 'The video is too large to download from this version.',
+    timeout: 'Preparing the video took too long. Try a shorter video.',
+  },
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -18,9 +32,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sourceUrl = firstQueryValue(req.query.url);
   const quality = firstQueryValue(req.query.quality) === 'low' ? 'low' : 'high';
   const filename = sanitizeFileName(firstQueryValue(req.query.filename) || `social-video-${quality}.mp4`);
+  const language = firstQueryValue(req.query.language) === 'en' ? 'en' : 'es';
 
   if (!sourceUrl || !isAllowedVideoSourceUrl(sourceUrl)) {
-    res.status(400).json({ ok: false, error: 'Invalid video URL.' });
+    res.status(400).json({ ok: false, error: messages[language].invalidUrl });
     return;
   }
 
@@ -49,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const videoStat = await stat(videoPath);
 
     if (videoStat.size > maxVideoBytes) {
-      res.status(413).json({ ok: false, error: 'Video file is too large.' });
+      res.status(413).json({ ok: false, error: messages[language].tooLarge });
       return;
     }
 
@@ -67,7 +82,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     await cleanupOutput(outputPrefix);
     console.error('video extraction failed', error);
-    res.status(422).json({ ok: false, error: 'Could not prepare video.' });
+    res.status(isTimeoutError(error) ? 504 : 422).json({
+      ok: false,
+      error: isTimeoutError(error) ? messages[language].timeout : messages[language].prepareFailed,
+    });
   }
 }
 
@@ -167,4 +185,9 @@ function sanitizeFileName(value: string) {
     .slice(0, 96);
 
   return sanitized.endsWith('.mp4') ? sanitized : `${sanitized || 'instagram-video'}.mp4`;
+}
+
+function isTimeoutError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return message.includes('timed out') || message.includes('timeout');
 }

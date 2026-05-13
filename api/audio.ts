@@ -9,6 +9,20 @@ import { spawn } from 'node:child_process';
 
 const maxAudioBytes = 80 * 1024 * 1024;
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+const messages = {
+  es: {
+    invalidUrl: 'El link de audio no es valido.',
+    prepareFailed: 'No se pudo extraer el audio. Puede estar privado, requerir login o tener una restriccion de la plataforma.',
+    tooLarge: 'El audio es demasiado grande para descargarlo desde esta version.',
+    timeout: 'La extraccion del audio tardo demasiado. Intenta con un video mas corto.',
+  },
+  en: {
+    invalidUrl: 'The audio link is not valid.',
+    prepareFailed: 'Could not extract the audio. It may be private, require login, or have a platform restriction.',
+    tooLarge: 'The audio is too large to download from this version.',
+    timeout: 'Extracting the audio took too long. Try a shorter video.',
+  },
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -18,9 +32,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sourceUrl = firstQueryValue(req.query.url);
   const filename = sanitizeFileName(firstQueryValue(req.query.filename) || 'twitter-audio.mp4');
+  const language = firstQueryValue(req.query.language) === 'en' ? 'en' : 'es';
 
   if (!sourceUrl || !isAllowedTwitterUrl(sourceUrl)) {
-    res.status(400).json({ ok: false, error: 'Invalid Twitter URL.' });
+    res.status(400).json({ ok: false, error: messages[language].invalidUrl });
     return;
   }
 
@@ -49,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const audioStat = await stat(audioPath);
 
     if (audioStat.size > maxAudioBytes) {
-      res.status(413).json({ ok: false, error: 'Audio file is too large.' });
+      res.status(413).json({ ok: false, error: messages[language].tooLarge });
       return;
     }
 
@@ -67,7 +82,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     await cleanupOutput(outputPrefix);
     console.error('audio extraction failed', error);
-    res.status(422).json({ ok: false, error: 'Could not extract audio.' });
+    res.status(isTimeoutError(error) ? 504 : 422).json({
+      ok: false,
+      error: isTimeoutError(error) ? messages[language].timeout : messages[language].prepareFailed,
+    });
   }
 }
 
@@ -149,4 +167,9 @@ function sanitizeFileName(value: string) {
     .slice(0, 96);
 
   return sanitized || 'twitter-audio.mp4';
+}
+
+function isTimeoutError(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return message.includes('timed out') || message.includes('timeout');
 }

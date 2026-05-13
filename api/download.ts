@@ -2,6 +2,18 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Readable } from 'node:stream';
 
 const maxDownloadBytes = 90 * 1024 * 1024;
+const messages = {
+  es: {
+    invalidUrl: 'La URL de descarga no es valida.',
+    fetchFailed: 'No se pudo descargar el archivo desde la plataforma. Intenta de nuevo.',
+    tooLarge: 'El archivo es demasiado grande para descargarlo desde esta version.',
+  },
+  en: {
+    invalidUrl: 'The download URL is not valid.',
+    fetchFailed: 'Could not download the file from the platform. Try again.',
+    tooLarge: 'The file is too large to download from this version.',
+  },
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -11,9 +23,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sourceUrl = firstQueryValue(req.query.url);
   const filename = sanitizeFileName(firstQueryValue(req.query.filename) || 'download.mp4');
+  const language = firstQueryValue(req.query.language) === 'en' ? 'en' : 'es';
 
   if (!sourceUrl || !isAllowedRemoteUrl(sourceUrl)) {
-    res.status(400).json({ ok: false, error: 'Invalid download URL.' });
+    res.status(400).json({ ok: false, error: messages[language].invalidUrl });
     return;
   }
 
@@ -25,18 +38,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!upstream.ok) {
-      res.status(502).json({ ok: false, error: 'Could not fetch media.' });
+      res.status(502).json({ ok: false, error: messages[language].fetchFailed });
       return;
     }
 
     const contentLength = Number(upstream.headers.get('content-length') ?? 0);
     if (contentLength > maxDownloadBytes) {
-      res.status(413).json({ ok: false, error: 'File is too large.' });
+      res.status(413).json({ ok: false, error: messages[language].tooLarge });
       return;
     }
 
     if (!upstream.body) {
-      res.status(502).json({ ok: false, error: 'Could not fetch media.' });
+      res.status(502).json({ ok: false, error: messages[language].fetchFailed });
       return;
     }
 
@@ -50,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
   } catch (error) {
     console.error('download proxy failed', error);
-    res.status(502).json({ ok: false, error: 'Could not fetch media.' });
+    res.status(502).json({ ok: false, error: messages[language].fetchFailed });
   }
 }
 
