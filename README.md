@@ -11,7 +11,7 @@ Expo app for Android, iOS, and mobile web. It lets a user paste a public social 
 - Vercel API route at `api/resolve.ts`
 - EAS build profiles in `eas.json`
 - Local API server for development with `npm run api:dev`
-- TikTok public-link extraction powered by `yt-dlp`
+- Public-link extraction powered by `yt-dlp`
 
 ## Current Backend Contract
 
@@ -35,6 +35,8 @@ npm run api:dev
 npm run web
 npm run web:export
 npm run typecheck
+npm run smoke:api
+npm run assets:brand
 ```
 
 For local web development with the extractor, run the API and Expo in separate terminals:
@@ -50,10 +52,23 @@ The `postinstall` script downloads the standalone `yt-dlp` binary into `.bin/yt-
 npm run server:install-ytdlp
 ```
 
-For native builds later, install and configure EAS:
+The app points native builds to the production API by default:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://socialm-downloader.vercel.app
+```
+
+For development builds with full native permissions, install and configure EAS:
 
 ```bash
 npx eas-cli init
-npx eas-cli build --platform android
-npx eas-cli build --platform ios
+npx eas-cli build --profile development --platform android
+npx eas-cli build --profile development --platform ios
+```
+
+For production builds:
+
+```bash
+npx eas-cli build --profile production --platform android
+npx eas-cli build --profile production --platform ios
 ```
