@@ -24,7 +24,7 @@ export const platforms: PlatformConfig[] = [
     id: 'facebook',
     label: 'Facebook',
     hostPatterns: [/^facebook\.com$/i, /^www\.facebook\.com$/i, /^fb\.watch$/i, /^m\.facebook\.com$/i],
-    pathPatterns: [/\/watch/i, /\/reel/i, /\/videos/i, /\/share\/v/i],
+    pathPatterns: [/\/watch/i, /\/reel/i, /\/videos/i, /\/share\/r/i, /\/share\/v/i],
   },
   {
     id: 'tiktok',
@@ -42,6 +42,10 @@ export function detectPlatform(rawUrl: string): PlatformId | null {
 
   const host = parsed.hostname.replace(/^www\./i, '');
   const pathname = parsed.pathname;
+
+  if (/^fb\.watch$/i.test(host) && /^\/.+/i.test(pathname)) {
+    return 'facebook';
+  }
 
   const platform = platforms.find((item) => {
     const hostMatches = item.hostPatterns.some((pattern) => pattern.test(host) || pattern.test(parsed.hostname));
@@ -81,8 +85,22 @@ export function isSupportedPublicUrl(rawUrl: string, selectedPlatform?: Platform
   return {
     ok: true as const,
     platform,
-    normalizedUrl: parsed.toString(),
+    normalizedUrl: normalizePlatformUrl(parsed, platform).toString(),
   };
+}
+
+function normalizePlatformUrl(url: URL, platform: PlatformId) {
+  if (platform === 'facebook') {
+    const watchPathMatch = url.pathname.match(/^\/watch\/v=(\d+)/i);
+    if (watchPathMatch) {
+      const normalized = new URL(url.toString());
+      normalized.pathname = '/watch/';
+      normalized.search = `?v=${watchPathMatch[1]}`;
+      return normalized;
+    }
+  }
+
+  return url;
 }
 
 function parseUrl(rawUrl: string) {

@@ -48,7 +48,12 @@ export async function resolveMediaRequest(body: Partial<ResolveRequest>): Promis
     };
   }
 
-  if (validation.platform === 'instagram' || validation.platform === 'tiktok' || validation.platform === 'twitter') {
+  if (
+    validation.platform === 'facebook'
+    || validation.platform === 'instagram'
+    || validation.platform === 'tiktok'
+    || validation.platform === 'twitter'
+  ) {
     try {
       const media = await extractWithYtDlp({
         url: validation.normalizedUrl,

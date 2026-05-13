@@ -12,7 +12,7 @@ type ExtractParams = {
   platform: ExtractablePlatform;
 };
 
-type ExtractablePlatform = Extract<PlatformId, 'instagram' | 'tiktok' | 'twitter'>;
+type ExtractablePlatform = Extract<PlatformId, 'facebook' | 'instagram' | 'tiktok' | 'twitter'>;
 
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
@@ -79,8 +79,8 @@ function mapFormats(
       id: 'video-high',
       label: videoLabel(language, platform, 'high'),
       quality: 'high',
-      downloadUrl: platform === 'instagram' ? videoExtractionUrl(sourceUrl, 'high') : undefined,
-      extension: platform === 'instagram' ? 'mp4' : undefined,
+      downloadUrl: usesVideoExtraction(platform) ? videoExtractionUrl(sourceUrl, 'high') : undefined,
+      extension: usesVideoExtraction(platform) ? 'mp4' : undefined,
     }));
   }
 
@@ -97,8 +97,8 @@ function mapFormats(
       id: 'video-low',
       label: videoLabel(language, platform, 'low'),
       quality: 'low',
-      downloadUrl: platform === 'instagram' ? videoExtractionUrl(sourceUrl, 'low') : undefined,
-      extension: platform === 'instagram' ? 'mp4' : undefined,
+      downloadUrl: usesVideoExtraction(platform) ? videoExtractionUrl(sourceUrl, 'low') : undefined,
+      extension: usesVideoExtraction(platform) ? 'mp4' : undefined,
     }));
   }
 
@@ -143,6 +143,10 @@ function audioExtractionUrl(sourceUrl: string) {
 function videoExtractionUrl(sourceUrl: string, quality: 'high' | 'low') {
   const params = new URLSearchParams({ url: sourceUrl, quality });
   return `/api/video?${params.toString()}`;
+}
+
+function usesVideoExtraction(platform: ExtractablePlatform) {
+  return platform === 'facebook' || platform === 'instagram';
 }
 
 function toDownloadFormat(
@@ -242,11 +246,13 @@ function videoLabel(language: Language, platform: ExtractablePlatform, quality: 
 function titleFallback(language: Language, platform: ExtractablePlatform) {
   const titles = {
     es: {
+      facebook: 'Video publico de Facebook',
       tiktok: 'Video publico de TikTok',
       twitter: 'Video publico de Twitter',
       instagram: 'Video publico de Instagram',
     },
     en: {
+      facebook: 'Facebook public video',
       tiktok: 'TikTok public video',
       twitter: 'Twitter public video',
       instagram: 'Instagram public video',
@@ -266,6 +272,8 @@ function noticeFallback(language: Language, platform: ExtractablePlatform) {
 
 function platformLabel(platform: ExtractablePlatform) {
   switch (platform) {
+    case 'facebook':
+      return 'Facebook';
     case 'instagram':
       return 'Instagram';
     case 'tiktok':

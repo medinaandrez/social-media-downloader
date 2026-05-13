@@ -17,10 +17,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sourceUrl = firstQueryValue(req.query.url);
   const quality = firstQueryValue(req.query.quality) === 'low' ? 'low' : 'high';
-  const filename = sanitizeFileName(firstQueryValue(req.query.filename) || `instagram-video-${quality}.mp4`);
+  const filename = sanitizeFileName(firstQueryValue(req.query.filename) || `social-video-${quality}.mp4`);
 
-  if (!sourceUrl || !isAllowedInstagramUrl(sourceUrl)) {
-    res.status(400).json({ ok: false, error: 'Invalid Instagram URL.' });
+  if (!sourceUrl || !isAllowedVideoSourceUrl(sourceUrl)) {
+    res.status(400).json({ ok: false, error: 'Invalid video URL.' });
     return;
   }
 
@@ -136,14 +136,24 @@ function firstQueryValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function isAllowedInstagramUrl(value: string) {
+function isAllowedVideoSourceUrl(value: string) {
   try {
     const url = new URL(value);
     const hostname = url.hostname.replace(/^www\./i, '').toLowerCase();
+    const isInstagram = hostname === 'instagram.com'
+      && (/\/p\//i.test(url.pathname) || /\/reel\//i.test(url.pathname));
+    const isFacebook = ['facebook.com', 'm.facebook.com', 'fb.watch'].includes(hostname)
+      && (
+        /\/watch/i.test(url.pathname)
+        || /\/reel/i.test(url.pathname)
+        || /\/videos/i.test(url.pathname)
+        || /\/share\/r/i.test(url.pathname)
+        || /\/share\/v/i.test(url.pathname)
+        || (hostname === 'fb.watch' && /^\/.+/i.test(url.pathname))
+      );
 
     return url.protocol === 'https:'
-      && hostname === 'instagram.com'
-      && (/\/p\//i.test(url.pathname) || /\/reel\//i.test(url.pathname));
+      && (isInstagram || isFacebook);
   } catch {
     return false;
   }
