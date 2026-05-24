@@ -1,6 +1,7 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { historyLimit } from '@/config/appConfig';
 import { loadHistory, loadLanguage, loadThemePreference, saveHistory, saveLanguage, saveThemePreference } from '@/services/storage';
 import type { HistoryItem, Language, ThemePreference } from '@/shared/types';
 import { darkTheme, lightTheme, type Theme } from '@/theme/palette';
@@ -52,7 +53,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AppContextValue>(() => ({
     addHistory: async (item) => {
-      const nextHistory = [item, ...history.filter((entry) => entry.sourceUrl !== item.sourceUrl)].slice(0, 25);
+      const nextHistory = [item, ...history.filter((entry) => entry.sourceUrl !== item.sourceUrl)].slice(0, historyLimit);
       setHistory(nextHistory);
       await saveHistory(nextHistory);
     },

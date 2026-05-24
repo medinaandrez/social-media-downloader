@@ -1,0 +1,18 @@
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY scripts ./scripts
+
+RUN npm ci
+
+COPY api ./api
+COPY src ./src
+COPY tsconfig.json ./
+
+ENV PORT=3200
+
+EXPOSE 3200
+
+CMD ["npx", "tsx", "scripts/youtube-resolve-service.ts"]

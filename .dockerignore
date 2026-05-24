@@ -1,0 +1,9 @@
+.git
+.expo
+.vercel
+dist
+ios
+node_modules
+assets
+*.log
+.DS_Store

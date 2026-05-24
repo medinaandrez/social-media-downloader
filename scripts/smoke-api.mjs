@@ -25,6 +25,12 @@ const tests = [
     url: 'https://www.instagram.com/reel/CYWmuqyBK7q/',
     expect: 'success-or-access-error',
   },
+  {
+    name: 'YouTube public video',
+    platform: 'youtube',
+    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    expect: 'success',
+  },
 ];
 
 let failures = 0;

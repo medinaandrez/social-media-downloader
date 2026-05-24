@@ -1,0 +1,17 @@
+.git
+.expo
+.DS_Store
+.bin
+.env*
+node_modules
+ios
+dist
+social-media-downloader
+QA_CHECKLIST.md
+QA_RESULTS_TEMPLATE.md
+QA_WEB_RESULTS_2026-05-17.md
+RELEASE_PRIORITIES.md
+OPTIMIZATION_ROADMAP.md
+scripts/android-doctor.sh
+scripts/android-install-sdk.sh
+scripts/with-android-env.sh

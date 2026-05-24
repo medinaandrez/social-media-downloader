@@ -32,6 +32,12 @@ export const platforms: PlatformConfig[] = [
     hostPatterns: [/^tiktok\.com$/i, /^www\.tiktok\.com$/i, /^vm\.tiktok\.com$/i, /^vt\.tiktok\.com$/i],
     pathPatterns: [/\/video\//i, /^\/.+/i],
   },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    hostPatterns: [/^youtube\.com$/i, /^www\.youtube\.com$/i, /^m\.youtube\.com$/i, /^youtu\.be$/i],
+    pathPatterns: [/\/watch/i, /\/shorts\//i, /^\/[a-z0-9_-]{6,}$/i],
+  },
 ];
 
 export function detectPlatform(rawUrl: string): PlatformId | null {
@@ -45,6 +51,10 @@ export function detectPlatform(rawUrl: string): PlatformId | null {
 
   if (/^fb\.watch$/i.test(host) && /^\/.+/i.test(pathname)) {
     return 'facebook';
+  }
+
+  if (/^youtu\.be$/i.test(host) && /^\/[a-z0-9_-]{6,}$/i.test(pathname)) {
+    return 'youtube';
   }
 
   const platform = platforms.find((item) => {
@@ -96,6 +106,21 @@ function normalizePlatformUrl(url: URL, platform: PlatformId) {
       const normalized = new URL(url.toString());
       normalized.pathname = '/watch/';
       normalized.search = `?v=${watchPathMatch[1]}`;
+      return normalized;
+    }
+  }
+
+  if (platform === 'youtube') {
+    if (url.hostname.replace(/^www\./i, '').toLowerCase() === 'youtu.be') {
+      const normalized = new URL('https://www.youtube.com/watch');
+      normalized.searchParams.set('v', url.pathname.replace(/^\//, ''));
+      return normalized;
+    }
+
+    if (/\/shorts\/([a-z0-9_-]+)/i.test(url.pathname)) {
+      const match = url.pathname.match(/\/shorts\/([a-z0-9_-]+)/i);
+      const normalized = new URL('https://www.youtube.com/watch');
+      normalized.searchParams.set('v', match?.[1] ?? '');
       return normalized;
     }
   }

@@ -18,6 +18,7 @@
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
+        "CFBundleDisplayName": "Social DL",
         "NSPhotoLibraryUsageDescription": "Social Media Downloader necesita permiso para acceder a tu galeria cuando quieras guardar contenido.",
         "NSPhotoLibraryAddUsageDescription": "Social Media Downloader necesita permiso para guardar videos descargados en tu galeria."
       }

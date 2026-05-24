@@ -42,12 +42,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = randomUUID();
   const outputPrefix = `smd-video-${id}`;
   const outputTemplate = join(tmpdir(), `${outputPrefix}.%(ext)s`);
+  const isTwitterReplay = Boolean(sourceUrl && isTwitterReplaySourceUrl(sourceUrl));
 
   try {
     await runYtDlp([
       sourceUrl,
       '--format',
-      formatSelectorFor(quality),
+      formatSelectorFor(quality, isTwitterReplay),
       '--force-ipv4',
       '--no-playlist',
       '--no-warnings',
@@ -56,9 +57,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '--quiet',
       '--socket-timeout',
       '15',
+      '--concurrent-fragments',
+      isTwitterReplay ? '8' : '1',
       '--output',
       outputTemplate,
-    ]);
+    ], isTwitterReplay ? 110000 : 55000);
 
     const videoPath = await findOutputFile(outputPrefix);
     const videoStat = await stat(videoPath);
@@ -89,7 +92,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-function formatSelectorFor(quality: 'high' | 'low') {
+function formatSelectorFor(quality: 'high' | 'low', isTwitterReplay: boolean) {
+  if (isTwitterReplay) {
+    return quality === 'low' ? 'replay-300/replay-600/worst' : 'replay-1200/replay-600/replay-2750/best';
+  }
+
   if (quality === 'low') {
     return 'worst[ext=mp4]/worst';
   }
@@ -97,7 +104,7 @@ function formatSelectorFor(quality: 'high' | 'low') {
   return 'best[ext=mp4]/best';
 }
 
-function runYtDlp(args: string[]) {
+function runYtDlp(args: string[], timeoutMs = 55000) {
   const binary = process.env.YTDLP_PATH || (existsSync(localBinaryPath) ? localBinaryPath : 'yt-dlp');
 
   return new Promise<void>((resolve, reject) => {
@@ -108,7 +115,7 @@ function runYtDlp(args: string[]) {
     const timeout = setTimeout(() => {
       child.kill('SIGKILL');
       reject(new Error('Video extraction timed out.'));
-    }, 55000);
+    }, timeoutMs);
 
     child.stderr.on('data', (chunk) => {
       stderr += String(chunk);
@@ -169,12 +176,27 @@ function isAllowedVideoSourceUrl(value: string) {
         || /\/share\/v/i.test(url.pathname)
         || (hostname === 'fb.watch' && /^\/.+/i.test(url.pathname))
       );
+    const isTwitterReplay = isTwitterReplayHost(hostname) && /\/i\/broadcasts\/[a-z0-9]+/i.test(url.pathname);
 
     return url.protocol === 'https:'
-      && (isInstagram || isFacebook);
+      && (isInstagram || isFacebook || isTwitterReplay);
   } catch {
     return false;
   }
+}
+
+function isTwitterReplaySourceUrl(value: string) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./i, '').toLowerCase();
+    return isTwitterReplayHost(hostname) && /\/i\/broadcasts\/[a-z0-9]+/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function isTwitterReplayHost(hostname: string) {
+  return ['twitter.com', 'x.com', 'mobile.twitter.com'].includes(hostname);
 }
 
 function sanitizeFileName(value: string) {

@@ -2,7 +2,7 @@ export type Language = 'es' | 'en';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
-export type PlatformId = 'twitter' | 'instagram' | 'facebook' | 'tiktok';
+export type PlatformId = 'twitter' | 'instagram' | 'facebook' | 'tiktok' | 'youtube';
 
 export type MediaKind = 'video' | 'audio';
 

@@ -4,10 +4,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 
+import { productionApiBaseUrl, stripTrailingSlash } from '@/config/appConfig';
 import { t } from '@/i18n/translations';
 import type { DownloadFormat, Language, ResolvedMedia } from '@/shared/types';
-
-const productionApiBaseUrl = 'https://socialm-downloader.vercel.app';
 
 type DownloadParams = {
   media: ResolvedMedia;
@@ -34,7 +33,7 @@ export async function downloadResolvedFormat({ media, format, mode, language }: 
       return;
     }
 
-    await startBrowserDownload(downloadUrl, fileName);
+    await startBrowserDownload(downloadUrl, fileName, language);
     return;
   }
 
@@ -72,10 +71,10 @@ async function downloadToCache(media: ResolvedMedia, format: DownloadFormat, lan
   return result.uri;
 }
 
-async function startBrowserDownload(url: string, fileName: string) {
+async function startBrowserDownload(url: string, fileName: string, language: Language) {
   const response = await fetch(url);
   if (!response.ok) {
-    const payload = await readErrorPayload(response);
+    const payload = await readErrorPayload(response, language);
     throw new Error(payload || `Download failed (${response.status})`);
   }
 
@@ -122,7 +121,7 @@ function nativeDownloadUrl(url: string) {
 function getApiBaseUrl() {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   const fromExpo = Constants.expoConfig?.extra?.apiBaseUrl;
-  return String(fromEnv || fromExpo || productionApiBaseUrl).replace(/\/$/, '');
+  return stripTrailingSlash(String(fromEnv || fromExpo || productionApiBaseUrl));
 }
 
 function proxiedDownloadUrl(url: string, fileName: string, language: Language) {
@@ -135,13 +134,30 @@ function proxiedDownloadUrl(url: string, fileName: string, language: Language) {
   return `/api/download?${params.toString()}`;
 }
 
-async function readErrorPayload(response: Response) {
+async function readErrorPayload(response: Response, language: Language) {
+  const text = await response.text();
+
+  if (isReplayTimeoutResponse(response.status, text)) {
+    return t(language, 'replayTooLarge');
+  }
+
   try {
-    const payload = await response.json() as { error?: string };
+    const payload = JSON.parse(text) as { error?: string };
     return payload.error;
   } catch {
-    return '';
+    return text.trim();
   }
+}
+
+function isReplayTimeoutResponse(status: number, text: string) {
+  if (status !== 504) {
+    return false;
+  }
+
+  const normalized = text.toLowerCase();
+  return normalized.includes('function_invocation_timeout')
+    || normalized.includes('timed out')
+    || normalized.includes('tardo demasiado');
 }
 
 function fileNameFor(media: ResolvedMedia, format: DownloadFormat) {

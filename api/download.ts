@@ -2,6 +2,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Readable } from 'node:stream';
 
 const maxDownloadBytes = 90 * 1024 * 1024;
+const allowedRemoteHosts = [
+  /^video\.twimg\.com$/i,
+  /^pbs\.twimg\.com$/i,
+  /(^|\.)tiktokcdn\.com$/i,
+  /(^|\.)tiktokcdn-us\.com$/i,
+  /(^|\.)byteoversea\.com$/i,
+  /(^|\.)muscdn\.com$/i,
+  /(^|\.)akamaized\.net$/i,
+  /(^|\.)googlevideo\.com$/i,
+];
 const messages = {
   es: {
     invalidUrl: 'La URL de descarga no es valida.',
@@ -79,10 +89,12 @@ function isAllowedRemoteUrl(value: string) {
     }
 
     const hostname = url.hostname.toLowerCase();
-    return hostname !== 'localhost'
+    const isSafeRemoteHost = hostname !== 'localhost'
       && hostname !== '127.0.0.1'
       && hostname !== '0.0.0.0'
       && !hostname.endsWith('.local');
+
+    return isSafeRemoteHost && allowedRemoteHosts.some((pattern) => pattern.test(hostname));
   } catch {
     return false;
   }

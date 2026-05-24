@@ -1,0 +1,200 @@
+import { StyleSheet } from 'react-native';
+
+import type { Theme } from '@/theme/palette';
+
+export function makeSettingsStyles(theme: Theme) {
+  const colors = theme.colors;
+
+  return StyleSheet.create({
+    screen: {
+      backgroundColor: colors.background,
+      flex: 1,
+    },
+    content: {
+      gap: 16,
+      marginHorizontal: 'auto',
+      maxWidth: 760,
+      paddingHorizontal: 18,
+      width: '100%',
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 12,
+    },
+    iconButton: {
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      height: 44,
+      justifyContent: 'center',
+      width: 44,
+    },
+    headerText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 28,
+      fontWeight: '800',
+      letterSpacing: 0,
+      lineHeight: 34,
+    },
+    subtitle: {
+      color: colors.mutedText,
+      fontSize: 14,
+      fontWeight: '600',
+      lineHeight: 20,
+      marginTop: 2,
+    },
+    section: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      gap: 14,
+      padding: 14,
+    },
+    sectionHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 12,
+    },
+    sectionIcon: {
+      alignItems: 'center',
+      backgroundColor: colors.accentSoft,
+      borderRadius: 8,
+      height: 42,
+      justifyContent: 'center',
+      width: 42,
+    },
+    sectionText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: 17,
+      fontWeight: '800',
+      letterSpacing: 0,
+    },
+    sectionDescription: {
+      color: colors.mutedText,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+      marginTop: 2,
+    },
+    optionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    optionButton: {
+      alignItems: 'center',
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 8,
+      height: 44,
+      justifyContent: 'center',
+      minWidth: 116,
+      paddingHorizontal: 14,
+    },
+    optionButtonActive: {
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+    },
+    optionText: {
+      color: colors.mutedText,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    optionTextActive: {
+      color: colors.accent,
+    },
+    clearButton: {
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      flexDirection: 'row',
+      gap: 8,
+      height: 46,
+      justifyContent: 'center',
+      minWidth: 136,
+      paddingHorizontal: 16,
+    },
+    clearButtonText: {
+      color: colors.onAccent,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    authorCard: {
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      gap: 4,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    authorName: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    authorRole: {
+      color: colors.mutedText,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    noticeCard: {
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+      borderRadius: 8,
+      borderWidth: 1,
+      gap: 4,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    noticeTitle: {
+      color: colors.accent,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    noticeBody: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    linkButton: {
+      alignItems: 'center',
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 8,
+      height: 44,
+      justifyContent: 'center',
+      minWidth: 136,
+      paddingHorizontal: 14,
+    },
+    linkButtonText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    disabledButton: {
+      opacity: 0.48,
+    },
+  });
+}

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { historyLimit } from '@/config/appConfig';
 import type { HistoryItem, Language, ThemePreference } from '@/shared/types';
 
 const HISTORY_KEY = 'smd:history';
@@ -20,7 +21,7 @@ export async function loadHistory() {
 }
 
 export async function saveHistory(items: HistoryItem[]) {
-  await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 25)));
+  await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, historyLimit)));
 }
 
 export async function loadLanguage() {

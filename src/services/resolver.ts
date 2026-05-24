@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+import { productionApiBaseUrl, stripTrailingSlash } from '@/config/appConfig';
 import { t } from '@/i18n/translations';
+import { createExtractorRequiredFormats } from '@/shared/format-presets';
 import { isSupportedPublicUrl } from '@/shared/platforms';
-import type { DownloadFormat, ResolveRequest, ResolveResponse, ResolvedMedia } from '@/shared/types';
-
-const productionApiBaseUrl = 'https://socialm-downloader.vercel.app';
+import type { ResolveRequest, ResolveResponse, ResolvedMedia } from '@/shared/types';
 
 export async function resolveMedia(request: ResolveRequest) {
   const apiBaseUrl = getApiBaseUrl();
@@ -56,7 +56,7 @@ function getApiBaseUrl() {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   const fromExpo = Constants.expoConfig?.extra?.apiBaseUrl;
   const fallback = Platform.OS === 'web' ? '' : productionApiBaseUrl;
-  return String(fromEnv || fromExpo || fallback).replace(/\/$/, '');
+  return stripTrailingSlash(String(fromEnv || fromExpo || fallback));
 }
 
 function createLocalPreview(request: ResolveRequest): ResolvedMedia {
@@ -73,28 +73,9 @@ function createLocalPreview(request: ResolveRequest): ResolvedMedia {
     author: t(request.language ?? 'es', 'publicProfile'),
     durationLabel: '00:00',
     notice: t(request.language ?? 'es', 'noDownloadUrl'),
-    formats: createPendingFormats(),
+    formats: createExtractorRequiredFormats(request.language ?? 'es'),
     resolvedAt: new Date().toISOString(),
   };
-}
-
-function createPendingFormats(): DownloadFormat[] {
-  return [
-    ['video-high', 'video', 'high', 'MP4 HD', 'mp4', 'video/mp4'],
-    ['video-medium', 'video', 'medium', 'MP4', 'mp4', 'video/mp4'],
-    ['video-low', 'video', 'low', 'MP4 ligero', 'mp4', 'video/mp4'],
-    ['audio-high', 'audio', 'high', 'Audio HQ', 'm4a', 'audio/mp4'],
-    ['audio-medium', 'audio', 'medium', 'Audio', 'm4a', 'audio/mp4'],
-    ['audio-low', 'audio', 'low', 'Audio ligero', 'm4a', 'audio/mp4'],
-  ].map(([id, kind, quality, label, extension, mimeType]) => ({
-    id,
-    kind: kind as DownloadFormat['kind'],
-    quality: quality as DownloadFormat['quality'],
-    label,
-    extension,
-    mimeType,
-    status: 'extractor_required',
-  }));
 }
 
 function previewTitle(platform: ResolvedMedia['platform']) {
@@ -107,5 +88,7 @@ function previewTitle(platform: ResolvedMedia['platform']) {
       return 'Facebook public video or reel';
     case 'tiktok':
       return 'TikTok public video';
+    case 'youtube':
+      return 'YouTube public video or short';
   }
 }
