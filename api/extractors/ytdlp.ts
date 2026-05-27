@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import youtubeDl, { create as createYoutubeDl } from 'youtube-dl-exec';
-import type { Format, Payload } from 'youtube-dl-exec';
+import type { Flags, Format, Payload } from 'youtube-dl-exec';
 
 import { hasOptionalYouTubeCookies, withOptionalYouTubeCookies } from '../ytdlp-auth';
 import { createExtractorRequiredFormats } from '../../src/shared/format-presets';
@@ -16,6 +16,7 @@ type ExtractParams = {
 
 type ExtractablePlatform = Extract<PlatformId, 'facebook' | 'instagram' | 'tiktok' | 'twitter' | 'youtube'>;
 type YtDlpJsRuntime = 'node' | 'bun' | 'quickjs' | 'deno' | `${'node' | 'bun' | 'quickjs' | 'deno'}:${string}`;
+type YtDlpFlags = Flags & { extractorArgs?: string };
 
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
@@ -87,9 +88,10 @@ async function runYtDlp({ url, platform }: Pick<ExtractParams, 'url' | 'platform
 }
 
 async function runYtDlpRequest(url: string, timeoutMs: number, cookiesPath?: string) {
-  return await runner(url, {
+  const flags: YtDlpFlags = {
     ...(cookiesPath ? { cookies: cookiesPath } : {}),
     dumpSingleJson: true,
+    extractorArgs: ytDlpExtractorArgs(),
     forceIpv4: true,
     noPlaylist: true,
     noWarnings: true,
@@ -98,7 +100,9 @@ async function runYtDlpRequest(url: string, timeoutMs: number, cookiesPath?: str
     jsRuntimes: ytDlpJsRuntime(),
     socketTimeout: 15,
     skipDownload: true,
-  }, {
+  };
+
+  return await runner(url, flags, {
     timeout: timeoutMs,
     killSignal: 'SIGKILL',
   }) as Payload;
@@ -140,6 +144,10 @@ function extractionTimeoutFor(platform: ExtractablePlatform) {
 function ytDlpJsRuntime(): YtDlpJsRuntime {
   const configured = process.env.YTDLP_JS_RUNTIMES?.trim();
   return isSupportedJsRuntime(configured) ? configured : 'node';
+}
+
+function ytDlpExtractorArgs() {
+  return process.env.YTDLP_EXTRACTOR_ARGS?.trim() || 'youtube:player_client=mweb,default';
 }
 
 function isSupportedJsRuntime(value: string | undefined): value is YtDlpJsRuntime {
