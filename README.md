@@ -143,6 +143,12 @@ Proxy notes:
 - `YTDLP_PROXY` applies to every `yt-dlp` platform when a platform-specific proxy is not set.
 - Prefer a trusted dedicated/residential proxy. Public proxy lists are unreliable and can leak traffic.
 
+Before adding a proxy to Render, validate it locally:
+
+```bash
+YTDLP_YOUTUBE_PROXY="http://user:pass@host:port" npm run youtube:proxy:test
+```
+
 The app points native builds to the production API by default:
 
 ```bash

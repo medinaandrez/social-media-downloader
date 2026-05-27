@@ -17,6 +17,7 @@
     "assets:brand": "node scripts/generate-brand-assets.mjs",
     "api:dev": "tsx scripts/dev-api.ts",
     "youtube:provider:install": "node scripts/install-bgutil-provider.mjs",
+    "youtube:proxy:test": "node scripts/test-youtube-proxy.mjs",
     "youtube:service": "tsx scripts/youtube-resolve-service.ts",
     "youtube:service:render": "sh scripts/start-youtube-service.sh",
     "server:install-ytdlp": "node scripts/install-ytdlp.mjs"
