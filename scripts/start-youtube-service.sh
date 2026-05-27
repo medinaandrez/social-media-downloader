@@ -1,10 +1,24 @@
 #!/bin/sh
 set -eu
 
-provider_pid=""
+app_root="${APP_ROOT:-$(pwd)}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$app_root/.render/config}"
 
-if [ -f "/app/bgutil-ytdlp-pot-provider/server/build/main.js" ]; then
-  node /app/bgutil-ytdlp-pot-provider/server/build/main.js --port "${BGUTIL_PROVIDER_PORT:-4416}" &
+provider_pid=""
+provider_entry=""
+
+for candidate in \
+  "$app_root/.render/bgutil-ytdlp-pot-provider/server/build/main.js" \
+  "$app_root/bgutil-ytdlp-pot-provider/server/build/main.js" \
+  "/app/bgutil-ytdlp-pot-provider/server/build/main.js"; do
+  if [ -f "$candidate" ]; then
+    provider_entry="$candidate"
+    break
+  fi
+done
+
+if [ -n "$provider_entry" ]; then
+  node "$provider_entry" --port "${BGUTIL_PROVIDER_PORT:-4416}" &
   provider_pid="$!"
 fi
 

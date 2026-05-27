@@ -16,7 +16,9 @@
     "smoke:api": "node scripts/smoke-api.mjs",
     "assets:brand": "node scripts/generate-brand-assets.mjs",
     "api:dev": "tsx scripts/dev-api.ts",
+    "youtube:provider:install": "node scripts/install-bgutil-provider.mjs",
     "youtube:service": "tsx scripts/youtube-resolve-service.ts",
+    "youtube:service:render": "sh scripts/start-youtube-service.sh",
     "server:install-ytdlp": "node scripts/install-ytdlp.mjs"
   },
   "dependencies": {

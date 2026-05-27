@@ -385,6 +385,10 @@ function normalizeExtension(extension: string) {
 
 function mimeTypeFor(extension: string, kind: DownloadFormat['kind']) {
   if (kind === 'audio') {
+    if (extension === 'webm') {
+      return 'audio/webm';
+    }
+
     return extension === 'mp3' ? 'audio/mpeg' : 'audio/mp4';
   }
 
