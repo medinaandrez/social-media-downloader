@@ -20,6 +20,7 @@ type YtDlpFlags = Flags & { extractorArgs?: string };
 type YtDlpRequestOptions = {
   cookiesPath?: string;
   extractorArgs?: string;
+  platform: ExtractablePlatform;
 };
 
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
@@ -63,7 +64,7 @@ async function runYtDlp({ url, platform }: Pick<ExtractParams, 'url' | 'platform
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      return await runYtDlpRequest(url, timeoutMs);
+      return await runYtDlpRequest(url, timeoutMs, { platform });
     } catch (error) {
       let nextError = error;
 
@@ -86,7 +87,7 @@ async function runYouTubeYtDlp(url: string): Promise<Payload> {
 
   for (const extractorArgs of strategies) {
     try {
-      const payload = await runYtDlpRequest(url, timeoutMs, { extractorArgs });
+      const payload = await runYtDlpRequest(url, timeoutMs, { extractorArgs, platform: 'youtube' });
 
       if (hasUsableYouTubeFormats(payload)) {
         return payload;
@@ -100,7 +101,7 @@ async function runYouTubeYtDlp(url: string): Promise<Payload> {
       if (shouldTryYouTubeCookiesFallback(error) && hasOptionalYouTubeCookies()) {
         try {
           const payload = await withOptionalYouTubeCookies('youtube', async (cookiesPath) => (
-            await runYtDlpRequest(url, timeoutMs, { cookiesPath, extractorArgs })
+            await runYtDlpRequest(url, timeoutMs, { cookiesPath, extractorArgs, platform: 'youtube' })
           ));
 
           if (hasUsableYouTubeFormats(payload)) {
@@ -122,7 +123,7 @@ async function runYouTubeYtDlp(url: string): Promise<Payload> {
   throw lastError instanceof Error ? lastError : new Error('youtube extraction failed');
 }
 
-async function runYtDlpRequest(url: string, timeoutMs: number, options: YtDlpRequestOptions = {}) {
+async function runYtDlpRequest(url: string, timeoutMs: number, options: YtDlpRequestOptions) {
   const flags: YtDlpFlags = {
     ...(options.cookiesPath ? { cookies: options.cookiesPath } : {}),
     dumpSingleJson: true,
@@ -136,6 +137,10 @@ async function runYtDlpRequest(url: string, timeoutMs: number, options: YtDlpReq
     socketTimeout: 15,
     skipDownload: true,
   };
+  const proxy = ytDlpProxyFor(options.platform);
+  if (proxy) {
+    flags.proxy = proxy;
+  }
 
   return await runner(url, flags, {
     timeout: timeoutMs,
@@ -194,6 +199,15 @@ function youtubeExtractorStrategies() {
     'youtube:player_client=android,ios',
     'youtube:player_client=tv,web_embedded,ios,android,mweb,default;player_skip=webpage',
   ].filter(Boolean) as string[]);
+}
+
+function ytDlpProxyFor(platform: ExtractablePlatform) {
+  const platformProxy = platform === 'youtube'
+    ? process.env.YTDLP_YOUTUBE_PROXY?.trim()
+    : undefined;
+  const globalProxy = process.env.YTDLP_PROXY?.trim();
+
+  return platformProxy || globalProxy || undefined;
 }
 
 function uniqueValues(values: string[]) {

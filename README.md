@@ -103,6 +103,7 @@ Standalone service:
 PORT=3200
 YOUTUBE_RESOLVE_SERVICE_TOKEN=change-me
 YTDLP_YOUTUBE_COOKIES_B64=...
+YTDLP_YOUTUBE_PROXY=http://user:pass@host:port
 YTDLP_YOUTUBE_TIMEOUT_MS=45000
 npm run youtube:service
 ```
@@ -129,11 +130,18 @@ Render blueprint option:
 render.yaml
 ```
 
-Use the included `render.yaml` to create a Docker web service named `social-media-downloader-youtube`, then set:
+Use the included `render.yaml` to create a web service named `social-media-downloader-youtube`, then set:
 
 - `YOUTUBE_RESOLVE_SERVICE_TOKEN`
 - `YTDLP_YOUTUBE_COOKIES_B64`
+- `YTDLP_YOUTUBE_PROXY` when YouTube blocks the provider IP
 - `YTDLP_YOUTUBE_TIMEOUT_MS=45000`
+
+Proxy notes:
+
+- `YTDLP_YOUTUBE_PROXY` applies only to YouTube extraction.
+- `YTDLP_PROXY` applies to every `yt-dlp` platform when a platform-specific proxy is not set.
+- Prefer a trusted dedicated/residential proxy. Public proxy lists are unreliable and can leak traffic.
 
 The app points native builds to the production API by default:
 
