@@ -17,6 +17,10 @@ type ExtractParams = {
 type ExtractablePlatform = Extract<PlatformId, 'facebook' | 'instagram' | 'tiktok' | 'twitter' | 'youtube'>;
 type YtDlpJsRuntime = 'node' | 'bun' | 'quickjs' | 'deno' | `${'node' | 'bun' | 'quickjs' | 'deno'}:${string}`;
 type YtDlpFlags = Flags & { extractorArgs?: string };
+type YtDlpRequestOptions = {
+  cookiesPath?: string;
+  extractorArgs?: string;
+};
 
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
@@ -50,7 +54,11 @@ export async function extractWithYtDlp({ url, language, platform }: ExtractParam
 }
 
 async function runYtDlp({ url, platform }: Pick<ExtractParams, 'url' | 'platform'>): Promise<Payload> {
-  const maxAttempts = platform === 'instagram' ? 3 : platform === 'youtube' ? 3 : 1;
+  if (platform === 'youtube') {
+    return await runYouTubeYtDlp(url);
+  }
+
+  const maxAttempts = platform === 'instagram' ? 3 : 1;
   const timeoutMs = extractionTimeoutFor(platform);
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -58,22 +66,6 @@ async function runYtDlp({ url, platform }: Pick<ExtractParams, 'url' | 'platform
       return await runYtDlpRequest(url, timeoutMs);
     } catch (error) {
       let nextError = error;
-
-      if (platform === 'youtube' && shouldTryYouTubeCookiesFallback(error) && hasOptionalYouTubeCookies()) {
-        try {
-          const payload = await withOptionalYouTubeCookies(platform, async (cookiesPath) => (
-            await runYtDlpRequest(url, timeoutMs, cookiesPath)
-          ));
-
-          if (hasUsableYouTubeFormats(payload)) {
-            return payload;
-          }
-
-          console.warn('youtube cookies fallback returned only storyboard or non-downloadable formats');
-        } catch (cookieError) {
-          console.warn('youtube cookies fallback failed', cookieError);
-        }
-      }
 
       if (!shouldRetryYtDlp(platform, nextError, attempt, maxAttempts)) {
         throw nextError;
@@ -87,11 +79,54 @@ async function runYtDlp({ url, platform }: Pick<ExtractParams, 'url' | 'platform
   throw new Error(`${platform} extraction failed`);
 }
 
-async function runYtDlpRequest(url: string, timeoutMs: number, cookiesPath?: string) {
+async function runYouTubeYtDlp(url: string): Promise<Payload> {
+  const timeoutMs = extractionTimeoutFor('youtube');
+  const strategies = youtubeExtractorStrategies();
+  let lastError: unknown;
+
+  for (const extractorArgs of strategies) {
+    try {
+      const payload = await runYtDlpRequest(url, timeoutMs, { extractorArgs });
+
+      if (hasUsableYouTubeFormats(payload)) {
+        return payload;
+      }
+
+      lastError = new Error(`youtube strategy returned no downloadable formats: ${extractorArgs}`);
+      console.warn(errorDetails(lastError));
+    } catch (error) {
+      lastError = error;
+
+      if (shouldTryYouTubeCookiesFallback(error) && hasOptionalYouTubeCookies()) {
+        try {
+          const payload = await withOptionalYouTubeCookies('youtube', async (cookiesPath) => (
+            await runYtDlpRequest(url, timeoutMs, { cookiesPath, extractorArgs })
+          ));
+
+          if (hasUsableYouTubeFormats(payload)) {
+            return payload;
+          }
+
+          lastError = new Error(`youtube cookies fallback returned no downloadable formats: ${extractorArgs}`);
+          console.warn(errorDetails(lastError));
+        } catch (cookieError) {
+          lastError = cookieError;
+          console.warn('youtube cookies fallback failed', cookieError);
+        }
+      }
+
+      console.warn(`youtube extraction strategy failed: ${extractorArgs}`, errorDetails(error));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('youtube extraction failed');
+}
+
+async function runYtDlpRequest(url: string, timeoutMs: number, options: YtDlpRequestOptions = {}) {
   const flags: YtDlpFlags = {
-    ...(cookiesPath ? { cookies: cookiesPath } : {}),
+    ...(options.cookiesPath ? { cookies: options.cookiesPath } : {}),
     dumpSingleJson: true,
-    extractorArgs: ytDlpExtractorArgs(),
+    extractorArgs: options.extractorArgs ?? ytDlpExtractorArgs(),
     forceIpv4: true,
     noPlaylist: true,
     noWarnings: true,
@@ -148,6 +183,21 @@ function ytDlpJsRuntime(): YtDlpJsRuntime {
 
 function ytDlpExtractorArgs() {
   return process.env.YTDLP_EXTRACTOR_ARGS?.trim() || 'youtube:player_client=mweb,default';
+}
+
+function youtubeExtractorStrategies() {
+  return uniqueValues([
+    process.env.YTDLP_EXTRACTOR_ARGS?.trim(),
+    'youtube:player_client=mweb,default',
+    'youtube:player_client=mweb,default;player_skip=webpage',
+    'youtube:player_client=android,ios,mweb,web,default;player_skip=webpage',
+    'youtube:player_client=android,ios',
+    'youtube:player_client=tv,web_embedded,ios,android,mweb,default;player_skip=webpage',
+  ].filter(Boolean) as string[]);
+}
+
+function uniqueValues(values: string[]) {
+  return [...new Set(values)];
 }
 
 function isSupportedJsRuntime(value: string | undefined): value is YtDlpJsRuntime {
