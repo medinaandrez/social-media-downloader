@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Readable } from 'node:stream';
 
-const maxDownloadBytes = 90 * 1024 * 1024;
+const maxDownloadBytes = readMaxDownloadBytes();
 const allowedRemoteHosts = [
   /^video\.twimg\.com$/i,
   /^pbs\.twimg\.com$/i,
@@ -115,4 +115,13 @@ function contentTypeFor(filename: string) {
   }
 
   return 'video/mp4';
+}
+
+function readMaxDownloadBytes() {
+  const configured = Number(process.env.MAX_DOWNLOAD_BYTES);
+  if (Number.isFinite(configured) && configured > 0) {
+    return configured;
+  }
+
+  return 180 * 1024 * 1024;
 }

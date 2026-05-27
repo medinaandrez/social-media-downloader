@@ -15,6 +15,7 @@ type ExtractParams = {
 };
 
 type ExtractablePlatform = Extract<PlatformId, 'facebook' | 'instagram' | 'tiktok' | 'twitter' | 'youtube'>;
+type YtDlpJsRuntime = 'node' | 'bun' | 'quickjs' | 'deno' | `${'node' | 'bun' | 'quickjs' | 'deno'}:${string}`;
 
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
@@ -94,6 +95,7 @@ async function runYtDlpRequest(url: string, timeoutMs: number, cookiesPath?: str
     noWarnings: true,
     retries: 1,
     quiet: true,
+    jsRuntimes: ytDlpJsRuntime(),
     socketTimeout: 15,
     skipDownload: true,
   }, {
@@ -124,15 +126,24 @@ function shouldRetryYtDlp(
 
 function extractionTimeoutFor(platform: ExtractablePlatform) {
   if (platform === 'youtube') {
-    const configured = Number(process.env.YTDLP_YOUTUBE_TIMEOUT_MS || 18000);
+    const configured = Number(process.env.YTDLP_YOUTUBE_TIMEOUT_MS || 45000);
     if (Number.isFinite(configured)) {
       return Math.max(10000, Math.min(120000, Math.round(configured)));
     }
 
-    return 18000;
+    return 45000;
   }
 
   return 30000;
+}
+
+function ytDlpJsRuntime(): YtDlpJsRuntime {
+  const configured = process.env.YTDLP_JS_RUNTIMES?.trim();
+  return isSupportedJsRuntime(configured) ? configured : 'node';
+}
+
+function isSupportedJsRuntime(value: string | undefined): value is YtDlpJsRuntime {
+  return Boolean(value && /^(node|bun|quickjs|deno)(:.+)?$/.test(value));
 }
 
 function shouldTryYouTubeCookiesFallback(error: unknown) {

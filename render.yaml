@@ -10,7 +10,5 @@ services:
         value: 3200
       - key: YOUTUBE_RESOLVE_SERVICE_TOKEN
         sync: false
-      - key: YTDLP_YOUTUBE_COOKIES_B64
-        sync: false
       - key: YTDLP_YOUTUBE_TIMEOUT_MS
         value: 45000

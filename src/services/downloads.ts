@@ -63,8 +63,12 @@ async function downloadToCache(media: ResolvedMedia, format: DownloadFormat, lan
     throw new Error('Cache directory is not available.');
   }
 
-  const target = `${FileSystem.cacheDirectory}${fileNameFor(media, format)}`;
-  const result = await FileSystem.downloadAsync(nativeDownloadUrl(format.downloadUrl!), target);
+  const fileName = fileNameFor(media, format);
+  const target = `${FileSystem.cacheDirectory}${fileName}`;
+  const result = await FileSystem.downloadAsync(
+    nativeDownloadUrl(format.downloadUrl!, fileName, language),
+    target,
+  );
   if (result.status >= 400) {
     throw new Error(t(language, 'genericError'));
   }
@@ -110,12 +114,16 @@ function absoluteWebUrl(url: string) {
   return `${window.location.origin}${url}`;
 }
 
-function nativeDownloadUrl(url: string) {
-  if (!url.startsWith('/')) {
-    return url;
+function nativeDownloadUrl(url: string, fileName: string, language: Language) {
+  if (url.startsWith('/')) {
+    return `${getApiBaseUrl()}${url}`;
   }
 
-  return `${getApiBaseUrl()}${url}`;
+  if (shouldProxyNativeDownload(url)) {
+    return `${getApiBaseUrl()}${proxiedDownloadUrl(url, fileName, language)}`;
+  }
+
+  return url;
 }
 
 function getApiBaseUrl() {
@@ -132,6 +140,15 @@ function proxiedDownloadUrl(url: string, fileName: string, language: Language) {
   });
 
   return `/api/download?${params.toString()}`;
+}
+
+function shouldProxyNativeDownload(url: string) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname === 'googlevideo.com' || hostname.endsWith('.googlevideo.com');
+  } catch {
+    return false;
+  }
 }
 
 async function readErrorPayload(response: Response, language: Language) {
