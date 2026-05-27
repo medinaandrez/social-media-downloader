@@ -11,7 +11,8 @@ const messages = {
     extractionFailed: 'No se pudo obtener el video publico. Verifica que el link exista, sea publico y no tenga restricciones.',
     instagramAccessRequired: 'Instagram no entrego este contenido sin sesion. Si la cuenta acaba de pasar de privada a publica, espera un poco y vuelve a intentarlo.',
     youtubeInvalidId: 'El link de YouTube parece incompleto o truncado. Vuelve a copiar el enlace completo desde Compartir en YouTube.',
-    youtubeBotCheck: 'YouTube bloqueo temporalmente esta descarga desde el servidor y pidio verificacion anti-bot. Prueba otro video publico o vuelve a intentarlo mas tarde.',
+    youtubeBotCheck: 'YouTube bloqueo esta descarga desde servidores y pidio verificacion anti-bot. Este link puede funcionar en navegador, pero no siempre desde la version web. Prueba otro video publico o intenta mas tarde.',
+    youtubeServiceUnavailable: 'YouTube esta en modo beta y el servicio tardo demasiado en responder. Espera unos segundos y vuelve a intentar, o prueba otro link publico.',
     youtubeTryLater: 'YouTube no entrego este video en este momento. Puede ser una limitacion temporal de la sesion anonima o del propio video. Intenta de nuevo mas tarde.',
     platformMismatch: 'La plataforma elegida no coincide con el link.',
     timeout: 'La plataforma tardo demasiado en responder. Intenta de nuevo o prueba un video mas corto.',
@@ -25,7 +26,8 @@ const messages = {
     extractionFailed: 'Could not read the public video. Check that the link exists, is public, and has no restrictions.',
     instagramAccessRequired: 'Instagram did not provide this content without a session. If the account was only recently switched from private to public, wait a bit and try again.',
     youtubeInvalidId: 'The YouTube link looks incomplete or truncated. Copy the full link again from YouTube Share.',
-    youtubeBotCheck: 'YouTube temporarily blocked this server-side download and asked for anti-bot verification. Try another public video or try again later.',
+    youtubeBotCheck: 'YouTube blocked this server-side download and asked for anti-bot verification. This link may work in a browser, but not always from the web app. Try another public video or try again later.',
+    youtubeServiceUnavailable: 'YouTube is in beta mode and the service took too long to respond. Wait a few seconds and try again, or try another public link.',
     youtubeTryLater: 'YouTube did not provide this video right now. This may be a temporary anonymous-session limit or a restriction on the video itself. Try again later.',
     platformMismatch: 'The selected platform does not match the link.',
     timeout: 'The platform took too long to respond. Try again or use a shorter video.',
@@ -74,7 +76,11 @@ export async function resolveMediaRequest(
           language,
         }, dedicatedService);
       } catch (error) {
-        console.warn('Dedicated YouTube service unavailable, falling back to local extractor', error);
+        console.warn('Dedicated YouTube service unavailable', error);
+        return {
+          status: isTimeoutError(errorDetails(error)) ? 504 : 503,
+          payload: { ok: false, error: messages[language].youtubeServiceUnavailable },
+        };
       }
     }
   }
@@ -191,6 +197,7 @@ function isTimeoutError(details: string) {
   const normalized = details.toLowerCase();
   return normalized.includes('timed out')
     || normalized.includes('timeout')
+    || normalized.includes('aborted')
     || normalized.includes('socket');
 }
 

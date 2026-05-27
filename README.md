@@ -80,10 +80,11 @@ scripts/vercel-set-youtube-cookies.sh /absolute/path/to/youtube-cookies.txt
 
 Current recommendation:
 
-- Treat YouTube support as `best effort`.
-- Some public videos resolve normally.
-- Some public videos may still fail temporarily because YouTube blocks server-side extraction with anti-bot checks.
-- The app now surfaces that case with a specific error instead of a generic extraction failure.
+- Treat YouTube support as `beta / best effort` on the public web app.
+- Some public videos and Shorts resolve normally.
+- Some public videos may still fail because YouTube blocks server-side extraction with anti-bot checks.
+- The app surfaces that case with a specific user-facing message instead of a generic extraction failure.
+- Without a reliable residential/ISP proxy or paid third-party API, this is the expected free-tier behavior.
 
 ### Dedicated YouTube resolve service
 

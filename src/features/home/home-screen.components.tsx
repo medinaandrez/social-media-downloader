@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import {
+  AlertTriangle,
   Check,
   Clipboard,
   Download,
@@ -137,6 +138,16 @@ export function LinkPanel({
           />
         ))}
       </View>
+
+      {selectedPlatform === 'youtube' ? (
+        <View style={styles.youtubeNotice}>
+          <AlertTriangle color={theme.colors.warning} size={18} />
+          <View style={styles.youtubeNoticeTextWrap}>
+            <Text style={styles.youtubeNoticeTitle}>{t(language, 'youtubeInlineNoticeTitle')}</Text>
+            <Text style={styles.youtubeNoticeBody}>{t(language, 'youtubeInlineNoticeBody')}</Text>
+          </View>
+        </View>
+      ) : null}
 
       {canShowPreviewButton ? (
         <Pressable

@@ -26,10 +26,22 @@ const tests = [
     expect: 'success-or-access-error',
   },
   {
-    name: 'YouTube public video',
+    name: 'YouTube public video best effort',
     platform: 'youtube',
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    expect: 'success-or-youtube-service-error',
+  },
+  {
+    name: 'YouTube shorts URL normalization',
+    platform: 'youtube',
+    url: 'https://www.youtube.com/shorts/dQw4w9WgXcQ',
     expect: 'success',
+  },
+  {
+    name: 'YouTube anti-bot handling',
+    platform: 'youtube',
+    url: 'https://youtu.be/PeLru2q5Z0E?si=n79aDFVGUVgZ-p8R',
+    expect: 'success-or-youtube-bot-error',
   },
 ];
 
@@ -57,11 +69,21 @@ for (const test of tests) {
   const isAccessError = response.status === 422
     && payload.ok === false
     && /sin sesion|sin iniciar sesion/i.test(payload.error ?? '');
+  const isYouTubeBotError = response.status === 422
+    && payload.ok === false
+    && /anti-bot|bloqueo|blocked/i.test(payload.error ?? '');
+  const isYouTubeServiceError = [503, 504].includes(response.status)
+    && payload.ok === false
+    && /youtube|function_invocation_timeout|tardo demasiado|took too long|deployment/i.test(payload.error ?? '');
   const passed = test.expect === 'success'
     ? isSuccess
     : test.expect === 'access-error'
       ? isAccessError
-      : isSuccess || isAccessError;
+      : test.expect === 'success-or-youtube-bot-error'
+        ? isSuccess || isYouTubeBotError
+        : test.expect === 'success-or-youtube-service-error'
+          ? isSuccess || isYouTubeServiceError
+        : isSuccess || isAccessError;
 
   if (!passed) {
     failures += 1;

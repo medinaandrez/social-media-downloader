@@ -120,6 +120,33 @@ export function makeHomeStyles(theme: Theme, isCompact: boolean) {
     platformButtonTextActive: {
       color: colors.accent,
     },
+    youtubeNotice: {
+      alignItems: 'flex-start',
+      backgroundColor: colors.surfaceSubtle,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    youtubeNoticeTextWrap: {
+      flex: 1,
+      gap: 2,
+      minWidth: 0,
+    },
+    youtubeNoticeTitle: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    youtubeNoticeBody: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
     primaryButton: {
       alignItems: 'center',
       backgroundColor: colors.accent,
