@@ -45,6 +45,7 @@ export default function HomeScreen() {
           handleUrlChange={state.handleUrlChange}
           language={state.language}
           loading={state.loading}
+          effectivePlatform={state.effectivePlatform}
           selectedPlatform={state.selectedPlatform}
           styles={styles}
           theme={state.theme}

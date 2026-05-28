@@ -1,4 +1,4 @@
-import { type ComponentType } from 'react';
+import { type ComponentType, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -77,6 +77,7 @@ export function LinkPanel({
   handleUrlChange,
   language,
   loading,
+  effectivePlatform,
   selectedPlatform,
   styles,
   theme,
@@ -89,11 +90,19 @@ export function LinkPanel({
   handleUrlChange: (value: string) => void;
   language: 'es' | 'en';
   loading: boolean;
+  effectivePlatform: PlatformId | null;
   selectedPlatform: PlatformId | 'auto';
   styles: HomeStyles;
   theme: Theme;
   url: string;
 }) {
+  const [showPlatformPicker, setShowPlatformPicker] = useState(false);
+  const hasUrl = Boolean(url.trim());
+  const shouldShowPlatformPicker = hasUrl && (showPlatformPicker || !effectivePlatform);
+  const platformForNotice = hasUrl
+    ? effectivePlatform ?? (selectedPlatform === 'auto' ? null : selectedPlatform)
+    : null;
+
   return (
     <View style={styles.linkPanel}>
       <View style={styles.inputShell}>
@@ -102,7 +111,10 @@ export function LinkPanel({
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-          onChangeText={handleUrlChange}
+          onChangeText={(nextUrl) => {
+            setShowPlatformPicker(false);
+            handleUrlChange(nextUrl);
+          }}
           onSubmitEditing={handleResolve}
           placeholder={t(language, 'urlPlaceholder')}
           placeholderTextColor={theme.colors.placeholder}
@@ -111,35 +123,79 @@ export function LinkPanel({
           value={url}
         />
         {url ? (
-          <Pressable accessibilityRole="button" onPress={() => handleUrlChange('')} style={styles.iconButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setShowPlatformPicker(false);
+              handleUrlChange('');
+            }}
+            style={styles.iconButton}
+          >
             <X color={theme.colors.mutedText} size={18} />
           </Pressable>
         ) : (
-          <Pressable accessibilityRole="button" onPress={copyFromClipboard} style={styles.iconButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={async () => {
+              setShowPlatformPicker(false);
+              await copyFromClipboard();
+            }}
+            style={styles.iconButton}
+          >
             <Clipboard color={theme.colors.mutedText} size={18} />
           </Pressable>
         )}
       </View>
 
-      <View style={styles.platformGrid}>
-        <PlatformButton
-          active={selectedPlatform === 'auto'}
-          label={t(language, 'auto')}
-          onPress={() => handlePlatformChange('auto')}
-          styles={styles}
-        />
-        {platforms.map((platform) => (
+      {hasUrl ? (
+        <View style={styles.detectedRow}>
+          <View style={styles.detectedPill}>
+            <Text style={styles.detectedEyebrow}>{t(language, 'detectedPlatform')}</Text>
+            <Text style={styles.detectedPlatformText}>
+              {platformForNotice ? platformLabel(platformForNotice) : t(language, 'unsupportedPlatform')}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setShowPlatformPicker((current) => !current)}
+            style={styles.changePlatformButton}
+          >
+            <Text style={styles.changePlatformText}>{t(language, 'changePlatform')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {hasUrl && !effectivePlatform ? (
+        <Text style={styles.platformHint}>{t(language, 'unsupportedPlatformHint')}</Text>
+      ) : null}
+
+      {shouldShowPlatformPicker ? (
+        <View style={styles.platformGrid}>
           <PlatformButton
-            active={selectedPlatform === platform.id}
-            key={platform.id}
-            label={platform.label}
-            onPress={() => handlePlatformChange(platform.id)}
+            active={selectedPlatform === 'auto'}
+            label={t(language, 'auto')}
+            onPress={() => {
+              handlePlatformChange('auto');
+              setShowPlatformPicker(false);
+            }}
             styles={styles}
           />
-        ))}
-      </View>
+          {platforms.map((platform) => (
+            <PlatformButton
+              active={selectedPlatform === platform.id || (selectedPlatform === 'auto' && effectivePlatform === platform.id)}
+              key={platform.id}
+              label={platform.label}
+              onPress={() => {
+                handlePlatformChange(platform.id);
+                setShowPlatformPicker(false);
+              }}
+              styles={styles}
+            />
+          ))}
+        </View>
+      ) : null}
 
-      {selectedPlatform === 'youtube' ? (
+      {platformForNotice === 'youtube' ? (
         <View style={styles.youtubeNotice}>
           <AlertTriangle color={theme.colors.warning} size={18} />
           <View style={styles.youtubeNoticeTextWrap}>

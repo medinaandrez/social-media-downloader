@@ -53,7 +53,8 @@ export function useHomeScreenState() {
   );
 
   const detectedPlatform = useMemo(() => detectPlatform(url), [url]);
-  const hasValidLink = Boolean(url.trim() && detectedPlatform);
+  const effectivePlatform = selectedPlatform === 'auto' ? detectedPlatform : selectedPlatform;
+  const hasValidLink = Boolean(url.trim() && effectivePlatform);
   const canShowPreviewButton = hasValidLink || loading;
 
   async function copyFromClipboard() {
@@ -68,10 +69,7 @@ export function useHomeScreenState() {
       setUrl(cleanText);
       setResolved(null);
       setSelectedFormatId(null);
-      const detected = detectPlatform(cleanText);
-      if (detected) {
-        setSelectedPlatform(detected);
-      }
+      setSelectedPlatform('auto');
     } catch {
       Alert.alert(t(language, 'clipboardBlockedTitle'), t(language, 'clipboardBlockedBody'));
     }
@@ -87,12 +85,7 @@ export function useHomeScreenState() {
     setUrl(value);
     setResolved(null);
     setSelectedFormatId(null);
-    if (selectedPlatform === 'auto') {
-      const detected = detectPlatform(value);
-      if (detected) {
-        setSelectedPlatform(detected);
-      }
-    }
+    setSelectedPlatform('auto');
   }
 
   async function handleResolve() {
@@ -110,7 +103,7 @@ export function useHomeScreenState() {
         language,
       });
       setResolved(media);
-      setSelectedPlatform(media.platform);
+      setSelectedPlatform(detectPlatform(cleanUrl) ? 'auto' : media.platform);
       const preferred = pickPreferredDownloadableFormat(media.formats, selectedKind);
       if (preferred) {
         setSelectedKind(preferred.kind);
@@ -181,6 +174,7 @@ export function useHomeScreenState() {
     history,
     language,
     loading,
+    effectivePlatform,
     resolved,
     selectedFormat: selectedFormat ?? null,
     selectedFormatId,
