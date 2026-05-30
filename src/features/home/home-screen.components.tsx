@@ -12,14 +12,18 @@ import {
   AlertTriangle,
   Check,
   Clipboard,
+  Copy,
   Download,
+  Flag,
   Link,
   Music,
   Play,
   RefreshCw,
   Settings,
   Share2,
+  Smartphone,
   Sparkles,
+  Trash2,
   Video,
   X,
 } from 'lucide-react-native';
@@ -28,11 +32,12 @@ import { router } from 'expo-router';
 
 import { t } from '@/i18n/translations';
 import { platforms } from '@/shared/platforms';
-import type { DownloadFormat, HistoryItem, MediaKind, PlatformId, ResolvedMedia } from '@/shared/types';
+import type { DownloadFormat, FailureReport, HistoryItem, MediaKind, PlatformId, ResolvedMedia } from '@/shared/types';
 import type { Theme } from '@/theme/palette';
 
 import { mediaKinds, platformLabel } from './home-screen.helpers';
 import { makeHomeStyles } from './home-screen.styles';
+import type { FlowPhase } from './use-home-screen-state';
 
 type HomeStyles = ReturnType<typeof makeHomeStyles>;
 
@@ -63,6 +68,78 @@ export function HomeHeader({
           style={styles.headerIconButton}
         >
           <Settings color={theme.colors.mutedText} size={22} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export function InstallAppCard({
+  language,
+  onDismiss,
+  onInstall,
+  styles,
+  theme,
+}: {
+  language: 'es' | 'en';
+  onDismiss: () => void;
+  onInstall: () => void;
+  styles: HomeStyles;
+  theme: Theme;
+}) {
+  return (
+    <View style={styles.utilityCard}>
+      <View style={styles.utilityIcon}>
+        <Smartphone color={theme.colors.accent} size={20} />
+      </View>
+      <View style={styles.utilityTextWrap}>
+        <Text style={styles.utilityTitle}>{t(language, 'installAppTitle')}</Text>
+        <Text style={styles.utilityBody}>{t(language, 'installAppBody')}</Text>
+      </View>
+      <View style={styles.utilityActions}>
+        <Pressable accessibilityRole="button" onPress={onInstall} style={styles.utilityPrimaryButton}>
+          <Text style={styles.utilityPrimaryText}>{t(language, 'installAppButton')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onDismiss} style={styles.utilityGhostButton}>
+          <Text style={styles.utilityGhostText}>{t(language, 'dismiss')}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export function ClipboardSuggestionCard({
+  language,
+  onDismiss,
+  onUse,
+  styles,
+  suggestion,
+  theme,
+}: {
+  language: 'es' | 'en';
+  onDismiss: () => void;
+  onUse: () => void;
+  styles: HomeStyles;
+  suggestion: { platform: PlatformId; url: string };
+  theme: Theme;
+}) {
+  return (
+    <View style={styles.utilityCard}>
+      <View style={styles.utilityIcon}>
+        <Clipboard color={theme.colors.accent} size={20} />
+      </View>
+      <View style={styles.utilityTextWrap}>
+        <Text style={styles.utilityTitle}>{t(language, 'clipboardSuggestionTitle')}</Text>
+        <Text numberOfLines={2} style={styles.utilityBody}>
+          {t(language, 'clipboardSuggestionBody')} {platformLabel(suggestion.platform)}.
+        </Text>
+      </View>
+      <View style={styles.utilityActions}>
+        <Pressable accessibilityRole="button" onPress={onUse} style={styles.utilityPrimaryButton}>
+          <Text style={styles.utilityPrimaryText}>{t(language, 'useLink')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onDismiss} style={styles.utilityGhostButton}>
+          <Text style={styles.utilityGhostText}>{t(language, 'dismiss')}</Text>
         </Pressable>
       </View>
     </View>
@@ -257,6 +334,91 @@ export function MediaKindControl({
   );
 }
 
+export function DownloadStatusCard({
+  flowPhase,
+  language,
+  styles,
+  theme,
+}: {
+  flowPhase: FlowPhase;
+  language: 'es' | 'en';
+  styles: HomeStyles;
+  theme: Theme;
+}) {
+  if (flowPhase === 'idle' || flowPhase === 'error') {
+    return null;
+  }
+
+  const steps: Array<{ key: FlowPhase; label: string }> = [
+    { key: 'resolving', label: t(language, 'statusResolving') },
+    { key: 'ready', label: t(language, 'statusReady') },
+    { key: 'preparing', label: t(language, 'statusPreparing') },
+    { key: 'started', label: t(language, 'statusStarted') },
+  ];
+  const activeIndex = Math.max(steps.findIndex((step) => step.key === flowPhase), 0);
+
+  return (
+    <View style={styles.statusCard}>
+      <View style={styles.statusHeader}>
+        <RefreshCw color={theme.colors.accent} size={18} />
+        <Text style={styles.statusTitle}>{t(language, 'downloadStatusTitle')}</Text>
+      </View>
+      <View style={styles.statusSteps}>
+        {steps.map((step, index) => {
+          const active = index <= activeIndex;
+          const current = index === activeIndex;
+          return (
+            <View key={step.key} style={styles.statusStep}>
+              <View style={[styles.statusDot, active && styles.statusDotActive]}>
+                {active ? <Check color={theme.colors.onAccent} size={12} /> : null}
+              </View>
+              <Text style={[styles.statusStepText, active && styles.statusStepTextActive, current && styles.statusStepTextCurrent]}>
+                {step.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+export function FailureReportCard({
+  failure,
+  language,
+  onCopy,
+  onReport,
+  styles,
+  theme,
+}: {
+  failure: FailureReport;
+  language: 'es' | 'en';
+  onCopy: (failure: FailureReport) => void;
+  onReport: (failure: FailureReport) => void;
+  styles: HomeStyles;
+  theme: Theme;
+}) {
+  return (
+    <View style={styles.failureCard}>
+      <View style={styles.failureHeader}>
+        <AlertTriangle color={theme.colors.warning} size={18} />
+        <Text style={styles.failureTitle}>{t(language, 'reportProblemTitle')}</Text>
+      </View>
+      <Text numberOfLines={3} style={styles.failureBody}>{failure.message}</Text>
+      <View style={styles.compactActionRow}>
+        <Pressable accessibilityRole="button" onPress={() => onReport(failure)} style={styles.compactPrimaryButton}>
+          <Flag color={theme.colors.onAccent} size={16} />
+          <Text style={styles.compactPrimaryText}>{t(language, 'reportLink')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => onCopy(failure)} style={styles.compactSecondaryButton}>
+          <Copy color={theme.colors.text} size={16} />
+          <Text style={styles.compactSecondaryText}>{t(language, 'copyReport')}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export function PreviewCard({
   language,
   onDownload,
@@ -380,11 +542,17 @@ export function PublicNoticeStrip({
 export function HistorySection({
   history,
   language,
+  onCopyLink,
+  onDelete,
+  onRedownload,
   styles,
   theme,
 }: {
   history: HistoryItem[];
   language: 'es' | 'en';
+  onCopyLink: (item: HistoryItem) => void;
+  onDelete: (item: HistoryItem) => void;
+  onRedownload: (item: HistoryItem) => void;
   styles: HomeStyles;
   theme: Theme;
 }) {
@@ -398,7 +566,18 @@ export function HistorySection({
         {history.length === 0 ? (
           <Text style={styles.historyEmpty}>{t(language, 'historyEmpty')}</Text>
         ) : (
-          history.map((item) => <HistoryRow item={item} key={item.id} styles={styles} theme={theme} />)
+          history.map((item) => (
+            <HistoryRow
+              item={item}
+              key={item.id}
+              language={language}
+              onCopyLink={onCopyLink}
+              onDelete={onDelete}
+              onRedownload={onRedownload}
+              styles={styles}
+              theme={theme}
+            />
+          ))
         )}
       </View>
     </>
@@ -555,10 +734,18 @@ function SegmentIcon({ Icon, color }: { Icon: LucideIcon; color: string }) {
 
 function HistoryRow({
   item,
+  language,
+  onCopyLink,
+  onDelete,
+  onRedownload,
   styles,
   theme,
 }: {
   item: HistoryItem;
+  language: 'es' | 'en';
+  onCopyLink: (item: HistoryItem) => void;
+  onDelete: (item: HistoryItem) => void;
+  onRedownload: (item: HistoryItem) => void;
   styles: HomeStyles;
   theme: Theme;
 }) {
@@ -578,6 +765,20 @@ function HistoryRow({
         <Text style={styles.historyMeta}>
           {platformLabel(item.platform)} - {item.kind.toUpperCase()} - {item.quality.toUpperCase()}
         </Text>
+        <View style={styles.historyActions}>
+          <Pressable accessibilityRole="button" onPress={() => onRedownload(item)} style={styles.historyActionButton}>
+            <RefreshCw color={theme.colors.accent} size={14} />
+            <Text style={styles.historyActionText}>{t(language, 'downloadAgain')}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => onCopyLink(item)} style={styles.historyActionButton}>
+            <Copy color={theme.colors.accent} size={14} />
+            <Text style={styles.historyActionText}>{t(language, 'copyLink')}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => onDelete(item)} style={styles.historyActionButton}>
+            <Trash2 color={theme.colors.warning} size={14} />
+            <Text style={styles.historyActionTextDanger}>{t(language, 'deleteItem')}</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );

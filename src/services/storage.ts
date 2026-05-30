@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { historyLimit } from '@/config/appConfig';
-import type { HistoryItem, Language, ThemePreference } from '@/shared/types';
+import type { FailureReport, HistoryItem, Language, ThemePreference } from '@/shared/types';
 
 const HISTORY_KEY = 'smd:history';
 const LANGUAGE_KEY = 'smd:language';
+const FAILURE_REPORTS_KEY = 'smd:failure-reports';
 const THEME_PREFERENCE_KEY = 'smd:theme-preference';
 
 export async function loadHistory() {
@@ -22,6 +23,23 @@ export async function loadHistory() {
 
 export async function saveHistory(items: HistoryItem[]) {
   await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, historyLimit)));
+}
+
+export async function loadFailureReports() {
+  const value = await AsyncStorage.getItem(FAILURE_REPORTS_KEY);
+  if (!value) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(value) as FailureReport[];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveFailureReports(items: FailureReport[]) {
+  await AsyncStorage.setItem(FAILURE_REPORTS_KEY, JSON.stringify(items.slice(0, historyLimit)));
 }
 
 export async function loadLanguage() {

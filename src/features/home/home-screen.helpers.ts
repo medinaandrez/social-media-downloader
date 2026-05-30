@@ -49,3 +49,12 @@ export async function readClipboardText() {
 
   return ExpoClipboard.getStringAsync();
 }
+
+export async function writeClipboardText(value: string) {
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  await ExpoClipboard.setStringAsync(value);
+}

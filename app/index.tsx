@@ -4,9 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ActionSheet,
+  ClipboardSuggestionCard,
+  DownloadStatusCard,
   EmptyStateCard,
+  FailureReportCard,
   HistorySection,
   HomeHeader,
+  InstallAppCard,
   LinkPanel,
   MediaKindControl,
   PreviewCard,
@@ -37,6 +41,27 @@ export default function HomeScreen() {
       >
         <HomeHeader language={state.language} styles={styles} theme={state.theme} />
 
+        {state.canShowInstallCard ? (
+          <InstallAppCard
+            language={state.language}
+            onDismiss={state.dismissInstallCard}
+            onInstall={state.handleInstallApp}
+            styles={styles}
+            theme={state.theme}
+          />
+        ) : null}
+
+        {state.clipboardSuggestion && !state.url ? (
+          <ClipboardSuggestionCard
+            language={state.language}
+            onDismiss={state.dismissClipboardSuggestion}
+            onUse={state.applyClipboardSuggestion}
+            styles={styles}
+            suggestion={state.clipboardSuggestion}
+            theme={state.theme}
+          />
+        ) : null}
+
         <LinkPanel
           canShowPreviewButton={state.canShowPreviewButton}
           copyFromClipboard={state.copyFromClipboard}
@@ -66,6 +91,24 @@ export default function HomeScreen() {
           />
         ) : null}
 
+        <DownloadStatusCard
+          flowPhase={state.flowPhase}
+          language={state.language}
+          styles={styles}
+          theme={state.theme}
+        />
+
+        {state.lastFailure ? (
+          <FailureReportCard
+            failure={state.lastFailure}
+            language={state.language}
+            onCopy={state.handleCopyFailureReport}
+            onReport={state.handleReportFailure}
+            styles={styles}
+            theme={state.theme}
+          />
+        ) : null}
+
         {state.resolved ? (
           <PreviewCard
             language={state.language}
@@ -86,6 +129,9 @@ export default function HomeScreen() {
         <HistorySection
           history={state.history}
           language={state.language}
+          onCopyLink={state.handleCopyHistoryLink}
+          onDelete={state.handleDeleteHistoryItem}
+          onRedownload={state.handleHistoryRedownload}
           styles={styles}
           theme={state.theme}
         />

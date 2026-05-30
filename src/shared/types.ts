@@ -44,6 +44,14 @@ export type HistoryItem = {
   createdAt: string;
 };
 
+export type FailureReport = {
+  id: string;
+  url: string;
+  platform?: PlatformId;
+  message: string;
+  createdAt: string;
+};
+
 export type ResolveRequest = {
   url: string;
   platform?: PlatformId;

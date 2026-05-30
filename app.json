@@ -43,7 +43,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "Social Media Downloader",
+      "shortName": "Social DL",
+      "themeColor": "#0D7C66",
+      "backgroundColor": "#071511",
+      "display": "standalone"
     },
     "extra": {
       "apiBaseUrl": "https://socialm-downloader.vercel.app",
