@@ -52,17 +52,19 @@ export default function HomeScreen() {
           url={state.url}
         />
 
-        <MediaKindControl
-          disabledMediaKinds={state.disabledMediaKinds}
-          language={state.language}
-          onChange={(kind) => {
-            state.setSelectedKind(kind);
-            state.setSelectedFormatId(null);
-          }}
-          selectedKind={state.selectedKind}
-          styles={styles}
-          theme={state.theme}
-        />
+        {state.hasValidLink ? (
+          <MediaKindControl
+            disabledMediaKinds={state.disabledMediaKinds}
+            language={state.language}
+            onChange={(kind) => {
+              state.setSelectedKind(kind);
+              state.setSelectedFormatId(null);
+            }}
+            selectedKind={state.selectedKind}
+            styles={styles}
+            theme={state.theme}
+          />
+        ) : null}
 
         {state.resolved ? (
           <PreviewCard
