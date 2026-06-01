@@ -111,6 +111,15 @@ function normalizePlatformUrl(url: URL, platform: PlatformId) {
   }
 
   if (platform === 'youtube') {
+    if (/\/watch/i.test(url.pathname)) {
+      const videoId = url.searchParams.get('v')?.trim() ?? '';
+      const normalized = new URL('https://www.youtube.com/watch');
+      if (videoId) {
+        normalized.searchParams.set('v', videoId);
+      }
+      return normalized;
+    }
+
     if (url.hostname.replace(/^www\./i, '').toLowerCase() === 'youtu.be') {
       const normalized = new URL('https://www.youtube.com/watch');
       normalized.searchParams.set('v', url.pathname.replace(/^\//, ''));

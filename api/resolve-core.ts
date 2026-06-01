@@ -86,7 +86,7 @@ export async function resolveMediaRequest(
   }
 
   try {
-    const media = await extractWithYtDlp({
+    const media = await resolveWithRetries({
       url: validation.normalizedUrl,
       language,
       platform: validation.platform,
@@ -102,6 +102,31 @@ export async function resolveMediaRequest(
       },
     };
   }
+}
+
+async function resolveWithRetries(request: {
+  language: Language;
+  platform: PlatformId;
+  url: string;
+}) {
+  let lastError: unknown;
+  const attempts = request.platform === 'youtube' ? 2 : 1;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await extractWithYtDlp(request);
+    } catch (error) {
+      lastError = error;
+      const details = errorDetails(error);
+      const canRetry = request.platform === 'youtube' && shouldRetryYouTubeResolve(details);
+      if (!canRetry || attempt >= attempts) {
+        break;
+      }
+      await wait(1200 * attempt);
+    }
+  }
+
+  throw lastError;
 }
 
 export function methodNotAllowed(language: Language = 'en'): ResolveResponse {
@@ -219,4 +244,12 @@ function isYouTubeTruncatedIdError(details: string) {
   const normalized = details.toLowerCase();
   return normalized.includes('incomplete youtube id')
     || normalized.includes('[youtube:truncated_id]');
+}
+
+function shouldRetryYouTubeResolve(details: string) {
+  return isTimeoutError(details) || isYouTubeBotCheckError(details) || isYouTubeTryLaterError(details);
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

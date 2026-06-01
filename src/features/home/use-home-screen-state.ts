@@ -302,6 +302,10 @@ export function useHomeScreenState() {
     Alert.alert(t(language, 'reportSavedTitle'), t(language, 'reportSavedBody'));
   }
 
+  async function handleRetryResolve() {
+    await handleResolve();
+  }
+
   async function resolveAndApply(
     cleanUrl: string,
     platform: PlatformId | undefined,
@@ -362,6 +366,7 @@ export function useHomeScreenState() {
     handleOpenActions,
     handlePlatformChange,
     handleReportFailure,
+    handleRetryResolve,
     handleResolve,
     handleUrlChange,
     hasValidLink,

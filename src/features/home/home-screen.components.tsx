@@ -388,6 +388,7 @@ export function FailureReportCard({
   language,
   onCopy,
   onReport,
+  onRetry,
   styles,
   theme,
 }: {
@@ -395,6 +396,7 @@ export function FailureReportCard({
   language: 'es' | 'en';
   onCopy: (failure: FailureReport) => void;
   onReport: (failure: FailureReport) => void;
+  onRetry: () => void;
   styles: HomeStyles;
   theme: Theme;
 }) {
@@ -406,6 +408,10 @@ export function FailureReportCard({
       </View>
       <Text numberOfLines={3} style={styles.failureBody}>{failure.message}</Text>
       <View style={styles.compactActionRow}>
+        <Pressable accessibilityRole="button" onPress={onRetry} style={styles.compactPrimaryButton}>
+          <RefreshCw color={theme.colors.onAccent} size={16} />
+          <Text style={styles.compactPrimaryText}>{t(language, 'retryNow')}</Text>
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={() => onReport(failure)} style={styles.compactPrimaryButton}>
           <Flag color={theme.colors.onAccent} size={16} />
           <Text style={styles.compactPrimaryText}>{t(language, 'reportLink')}</Text>

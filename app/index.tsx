@@ -104,6 +104,7 @@ export default function HomeScreen() {
             language={state.language}
             onCopy={state.handleCopyFailureReport}
             onReport={state.handleReportFailure}
+            onRetry={state.handleRetryResolve}
             styles={styles}
             theme={state.theme}
           />
