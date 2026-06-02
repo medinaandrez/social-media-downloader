@@ -24,7 +24,7 @@ export async function storeAnalyticsEvent(payload: AnalyticsEventPayload) {
   const dateKey = event.timestamp.slice(0, 10);
   const blobPath = `analytics-events/${dateKey}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`;
   await put(blobPath, JSON.stringify(event), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
     contentType: 'application/json',
   });
