@@ -41,13 +41,18 @@ function setCorsHeaders(res: VercelResponse) {
 function isAuthorized(req: VercelRequest) {
   const expectedToken = process.env.ADMIN_METRICS_TOKEN?.trim();
   if (!expectedToken) {
-    return true;
+    return isLocalRequest(req);
   }
 
   const headerToken = getHeaderValue(req.headers['x-admin-token']);
   const queryToken = typeof req.query.token === 'string' ? req.query.token.trim() : '';
   const provided = headerToken || queryToken;
   return provided.length > 0 && safeEquals(provided, expectedToken);
+}
+
+function isLocalRequest(req: VercelRequest) {
+  const host = getHeaderValue(req.headers.host);
+  return host.includes('localhost') || host.includes('127.0.0.1') || host.includes('0.0.0.0');
 }
 
 function getHeaderValue(value: string | string[] | undefined) {

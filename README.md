@@ -44,6 +44,7 @@ Private admin access:
 - Set `ADMIN_METRICS_TOKEN` in Vercel environment variables.
 - Open `/admin/metrics` in the web app and enter the same token.
 - When that token is configured, the summary endpoint rejects requests without it.
+- If the token is not configured, the private endpoint stays locked outside local development.
 
 Storage mode:
 

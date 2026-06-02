@@ -41,7 +41,10 @@ export default function AdminMetricsScreen() {
       setStatus(null);
     } catch (error) {
       setSummary(null);
-      setStatus(error instanceof Error ? error.message : t(language, 'adminTokenRequired'));
+      const message = error instanceof Error ? error.message : '';
+      setStatus(message.includes('401') || message.toLowerCase().includes('unauthorized')
+        ? t(language, 'adminTokenRequired')
+        : message || t(language, 'adminTokenRequired'));
     } finally {
       setLoading(false);
       setInitializing(false);
