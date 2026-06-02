@@ -9,6 +9,7 @@ import {
   LinkButton,
   openExternalUrl,
   OptionButton,
+  projectMetricsUrl,
   projectRepoUrl,
   projectWebsiteUrl,
   SettingsHeader,
@@ -128,6 +129,13 @@ export default function SettingsScreen() {
             icon="globe"
             label={t(language, 'viewWebsite')}
             onPress={() => openExternalUrl(projectWebsiteUrl)}
+            styles={styles}
+            theme={theme}
+          />
+          <LinkButton
+            icon="globe"
+            label={t(language, 'viewMetrics')}
+            onPress={() => openExternalUrl(projectMetricsUrl)}
             styles={styles}
             theme={theme}
           />

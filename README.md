@@ -27,6 +27,27 @@ Expo app for Android, iOS, and mobile web. It lets a user paste a public social 
 
 The endpoint validates supported public links and returns the shape the app needs. The extraction layer is intentionally isolated so public-content extractors can be connected per platform without changing the UI.
 
+## Analytics (Usage Stats)
+
+The app now sends analytics events for:
+
+- `resolve_start`, `resolve_success`, `resolve_error`
+- `download_start`, `download_success`, `download_error`
+
+API endpoints:
+
+- `POST /api/analytics` to ingest events
+- `GET /api/analytics-summary?hours=24` to get aggregated stats
+
+Storage mode:
+
+- If `BLOB_READ_WRITE_TOKEN` is configured in Vercel, events are persisted in Vercel Blob and summarized from there.
+- If not configured, analytics fall back to in-memory/runtime logs without breaking the app.
+
+Quick production summary URL:
+
+- `https://socialm-downloader.vercel.app/api/analytics-summary?hours=24`
+
 ## Commands
 
 ```bash

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+import { storeAnalyticsEvent } from './analytics-store';
 import { methodNotAllowed, resolveMediaRequest } from './resolve-core';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -15,7 +16,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const startedAt = Date.now();
   const result = await resolveMediaRequest(req.body);
+  await storeAnalyticsEvent({
+    event: result.payload.ok ? 'resolve_success' : 'resolve_error',
+    source: 'api',
+    platform: parseAnalyticsPlatform(req.body?.platform),
+    language: req.body?.language === 'en' ? 'en' : 'es',
+    status: result.payload.ok ? 'ok' : 'error',
+    errorType: result.payload.ok ? undefined : classifyResolveError(result.payload.error),
+    durationMs: Date.now() - startedAt,
+  });
   res.status(result.status).json(result.payload);
 }
 
@@ -24,4 +35,28 @@ function setCorsHeaders(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Origin', '*');
+}
+
+function classifyResolveError(message: string) {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('anti-bot') || normalized.includes('not a bot')) {
+    return 'youtube_antibot';
+  }
+  if (normalized.includes('tardo demasiado') || normalized.includes('timeout')) {
+    return 'timeout';
+  }
+  if (normalized.includes('iniciar sesion') || normalized.includes('signing in') || normalized.includes('login')) {
+    return 'login_required';
+  }
+  return 'generic';
+}
+
+function parseAnalyticsPlatform(platform: unknown) {
+  if (platform === 'twitter' || platform === 'instagram' || platform === 'facebook' || platform === 'tiktok' || platform === 'youtube') {
+    return platform;
+  }
+  if (platform === 'auto') {
+    return 'auto';
+  }
+  return 'unknown';
 }

@@ -3,6 +3,7 @@ import { Alert, Platform } from 'react-native';
 
 import { useAppState } from '@/context/AppState';
 import { t } from '@/i18n/translations';
+import { trackAnalyticsEvent } from '@/services/analytics';
 import { downloadResolvedFormat } from '@/services/downloads';
 import { resolveMedia } from '@/services/resolver';
 import { detectPlatform } from '@/shared/platforms';
@@ -179,14 +180,38 @@ export function useHomeScreenState() {
       return;
     }
 
+    const startedAt = Date.now();
     setLoading(true);
     setFlowPhase('resolving');
     setLastFailure(null);
+    await trackAnalyticsEvent({
+      event: 'resolve_start',
+      platform: selectedPlatform === 'auto' ? 'auto' : selectedPlatform,
+      kind: selectedKind,
+      language,
+    });
     try {
       await resolveAndApply(cleanUrl, selectedPlatform === 'auto' ? undefined : selectedPlatform, selectedKind);
+      await trackAnalyticsEvent({
+        event: 'resolve_success',
+        platform: effectivePlatform ?? 'unknown',
+        kind: selectedKind,
+        language,
+        status: 'ok',
+        durationMs: Date.now() - startedAt,
+      });
       setFlowPhase('ready');
     } catch (error) {
       const message = error instanceof Error ? error.message : t(language, 'genericError');
+      await trackAnalyticsEvent({
+        event: 'resolve_error',
+        platform: effectivePlatform ?? 'unknown',
+        kind: selectedKind,
+        language,
+        status: 'error',
+        errorType: normalizeErrorType(message),
+        durationMs: Date.now() - startedAt,
+      });
       setLastFailure(makeFailureReport(cleanUrl, effectivePlatform ?? undefined, message));
       setFlowPhase('error');
       Alert.alert(t(language, 'resolveErrorTitle'), message);
@@ -207,6 +232,13 @@ export function useHomeScreenState() {
       return;
     }
 
+    const startedAt = Date.now();
+    await trackAnalyticsEvent({
+      event: 'download_start',
+      platform: resolved.platform,
+      kind: actionFormat.kind,
+      language,
+    });
     setActionBusy(true);
     setActionPhase(isGeneratedAudio(resolved, actionFormat) ? 'audio' : 'preparing');
     setFlowPhase('preparing');
@@ -214,12 +246,29 @@ export function useHomeScreenState() {
     try {
       await downloadResolvedFormat({ media: resolved, format: actionFormat, mode, language });
       await addHistory(makeHistoryItem(resolved, actionFormat));
+      await trackAnalyticsEvent({
+        event: 'download_success',
+        platform: resolved.platform,
+        kind: actionFormat.kind,
+        language,
+        status: 'ok',
+        durationMs: Date.now() - startedAt,
+      });
       setActionFormat(null);
       setActionPhase('idle');
       setFlowPhase('started');
       Alert.alert(t(language, 'doneTitle'), doneMessageFor(mode, language));
     } catch (error) {
       const message = error instanceof Error ? error.message : t(language, 'genericError');
+      await trackAnalyticsEvent({
+        event: 'download_error',
+        platform: resolved.platform,
+        kind: actionFormat.kind,
+        language,
+        status: 'error',
+        errorType: normalizeErrorType(message),
+        durationMs: Date.now() - startedAt,
+      });
       setLastFailure(makeFailureReport(resolved.sourceUrl, resolved.platform, message));
       setFlowPhase('error');
       Alert.alert(t(language, 'downloadErrorTitle'), message);
@@ -389,6 +438,20 @@ export function useHomeScreenState() {
     dismissClipboardSuggestion: () => setClipboardSuggestion(null),
     dismissInstallCard: () => setInstallCardDismissed(true),
   };
+}
+
+function normalizeErrorType(message: string) {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('anti-bot') || normalized.includes('not a bot')) {
+    return 'youtube_antibot';
+  }
+  if (normalized.includes('too long') || normalized.includes('timeout') || normalized.includes('tardo demasiado')) {
+    return 'timeout';
+  }
+  if (normalized.includes('login') || normalized.includes('iniciar sesion')) {
+    return 'login_required';
+  }
+  return 'generic';
 }
 
 function formatFailureReport(report: FailureReport) {

@@ -19,6 +19,7 @@ export const themePreferences: ThemePreference[] = ['system', 'light', 'dark'];
 
 export const projectRepoUrl = 'https://github.com/medinaandrez/social-media-downloader';
 export const projectWebsiteUrl = 'https://socialm-downloader.vercel.app';
+export const projectMetricsUrl = 'https://socialm-downloader.vercel.app/api/analytics-summary?hours=24';
 
 export function SettingsHeader({
   language,
