@@ -22,7 +22,7 @@ export async function storeAnalyticsEvent(payload: AnalyticsEventPayload) {
   }
 
   const dateKey = event.timestamp.slice(0, 10);
-  const blobPath = `analytics-events/${dateKey}/${event.event}/${event.platform ?? 'unknown'}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`;
+  const blobPath = `analytics-events/${dateKey}/${event.event}__${event.platform ?? 'unknown'}__${Date.now()}__${Math.random().toString(36).slice(2, 10)}.json`;
   await put(blobPath, JSON.stringify(event), {
     access: 'private',
     addRandomSuffix: false,
@@ -117,10 +117,12 @@ function accumulateFromPath(
 ) {
   const parts = pathname.split('/');
   const dateKey = parts[1];
-  const eventName = parts[2];
-  const platform = parts[3];
-  const timestampStem = parts[4] ?? '';
-  const timestampGuess = Number.parseInt(timestampStem.slice(0, 13), 10);
+  const fileName = parts.at(-1) ?? '';
+  const [eventName, platform, timestampStem] = fileName.replace(/\.json$/i, '').split('__');
+  if (!eventName || !eventName.includes('_') || !platform || !timestampStem) {
+    return;
+  }
+  const timestampGuess = Number.parseInt(timestampStem ?? '', 10);
   const eventTs = Number.isFinite(timestampGuess) ? timestampGuess : Date.parse(`${dateKey}T00:00:00.000Z`);
 
   if (Number.isNaN(eventTs) || eventTs < windowStart) {
@@ -128,7 +130,7 @@ function accumulateFromPath(
   }
 
   counters.totalEvents += 1;
-  if (eventName) {
+  if (eventName && eventName.includes('_')) {
     counters.byEvent[eventName] = (counters.byEvent[eventName] ?? 0) + 1;
   }
   if (platform) {
