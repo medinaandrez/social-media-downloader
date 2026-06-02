@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppState } from '@/context/AppState';
@@ -129,13 +128,6 @@ export default function SettingsScreen() {
             icon="globe"
             label={t(language, 'viewWebsite')}
             onPress={() => openExternalUrl(projectWebsiteUrl)}
-            styles={styles}
-            theme={theme}
-          />
-          <LinkButton
-            icon="chart"
-            label={t(language, 'viewMetrics')}
-            onPress={() => router.push('/metrics')}
             styles={styles}
             theme={theme}
           />

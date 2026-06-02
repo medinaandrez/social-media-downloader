@@ -1,5 +1,5 @@
 import { Linking, Pressable, Text, View } from 'react-native';
-import { ArrowLeft, BarChart3, Check, Globe, Languages, Link2, MonitorSmartphone, Trash2, UserRound } from 'lucide-react-native';
+import { ArrowLeft, Check, Globe, Languages, Link2, MonitorSmartphone, Trash2, UserRound } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import { t } from '@/i18n/translations';
@@ -19,7 +19,6 @@ export const themePreferences: ThemePreference[] = ['system', 'light', 'dark'];
 
 export const projectRepoUrl = 'https://github.com/medinaandrez/social-media-downloader';
 export const projectWebsiteUrl = 'https://socialm-downloader.vercel.app';
-export const projectMetricsUrl = 'https://socialm-downloader.vercel.app/api/analytics-summary?hours=24';
 
 export function SettingsHeader({
   language,
@@ -116,13 +115,13 @@ export function LinkButton({
   styles,
   theme,
 }: {
-  icon: 'globe' | 'link' | 'chart';
+  icon: 'globe' | 'link';
   label: string;
   onPress: () => void;
   styles: SettingsStyles;
   theme: Theme;
 }) {
-  const Icon = icon === 'globe' ? Globe : icon === 'chart' ? BarChart3 : Link2;
+  const Icon = icon === 'globe' ? Globe : Link2;
 
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.linkButton}>
