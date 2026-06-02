@@ -18,17 +18,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const startedAt = Date.now();
   const result = await resolveMediaRequest(req.body);
-  const resolveEvent = result.payload.ok
-    ? {
-        event: 'resolve_success' as const,
-        status: 'ok' as const,
-        errorType: undefined,
-      }
-    : {
-        event: 'resolve_error' as const,
-        status: 'error' as const,
-        errorType: classifyResolveError(result.payload.error),
-      };
+  let resolveEvent: {
+    event: 'resolve_success' | 'resolve_error';
+    status: 'ok' | 'error';
+    errorType?: string;
+  };
+  if (result.payload.ok) {
+    resolveEvent = {
+      event: 'resolve_success',
+      status: 'ok',
+      errorType: undefined,
+    };
+  } else {
+    resolveEvent = {
+      event: 'resolve_error',
+      status: 'error',
+      errorType: classifyResolveError(result.payload.error),
+    };
+  }
 
   await storeAnalyticsEvent({
     event: resolveEvent.event,

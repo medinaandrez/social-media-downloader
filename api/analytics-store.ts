@@ -60,7 +60,8 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
 
   const blobs = await list({ prefix: 'analytics-events/' });
   for (const blob of blobs.blobs) {
-    const response = await fetch(blob.url);
+    const blobUrl = (blob as { downloadUrl?: string }).downloadUrl ?? blob.url;
+    const response = await fetch(blobUrl);
     if (!response.ok) {
       continue;
     }
