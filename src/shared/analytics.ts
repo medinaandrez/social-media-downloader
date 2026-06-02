@@ -27,6 +27,14 @@ export type AnalyticsSummary = {
   byEvent: Record<string, number>;
   byPlatform: Record<string, number>;
   errorsByType: Record<string, number>;
+  recentErrors: AnalyticsRecentError[];
   windowHours: number;
   storage: 'blob' | 'memory';
+};
+
+export type AnalyticsRecentError = {
+  event: AnalyticsEventName;
+  platform: PlatformId | 'auto' | 'unknown';
+  errorType: string;
+  timestamp: string;
 };

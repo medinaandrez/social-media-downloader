@@ -8,6 +8,7 @@ import { useAppState } from '@/context/AppState';
 import { t } from '@/i18n/translations';
 import { fetchAnalyticsSummaryWithToken } from '@/services/analytics';
 import { clearAdminMetricsToken, loadAdminMetricsToken, saveAdminMetricsToken } from '@/services/storage';
+import { writeClipboardText } from '@/features/home/home-screen.helpers';
 import type { AnalyticsSummary } from '@/shared/analytics';
 
 import { makeAdminMetricsStyles } from '@/features/admin/admin-metrics.styles';
@@ -18,13 +19,15 @@ export default function AdminMetricsScreen() {
   const styles = useMemo(() => makeAdminMetricsStyles(theme), [theme]);
   const [token, setToken] = useState('');
   const [remember, setRemember] = useState(true);
+  const [windowHours, setWindowHours] = useState<24 | 168 | 720>(24);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
 
-  const loadSummary = useCallback(async (providedToken?: string) => {
+  const loadSummary = useCallback(async (providedToken?: string, providedWindowHours?: 24 | 168 | 720) => {
     const nextToken = (providedToken ?? token).trim();
+    const nextWindowHours = providedWindowHours ?? windowHours;
     if (!nextToken) {
       setStatus(t(language, 'adminTokenRequired'));
       return;
@@ -33,7 +36,7 @@ export default function AdminMetricsScreen() {
     setLoading(true);
     setStatus(null);
     try {
-      const data = await fetchAnalyticsSummaryWithToken(24, nextToken);
+      const data = await fetchAnalyticsSummaryWithToken(nextWindowHours, nextToken);
       setSummary(data);
       if (remember) {
         await saveAdminMetricsToken(nextToken);
@@ -49,7 +52,7 @@ export default function AdminMetricsScreen() {
       setLoading(false);
       setInitializing(false);
     }
-  }, [language, remember, token]);
+  }, [language, remember, token, windowHours]);
 
   useEffect(() => {
     let mounted = true;
@@ -63,7 +66,7 @@ export default function AdminMetricsScreen() {
       if (storedToken) {
         setToken(storedToken);
         setRemember(true);
-        await loadSummary(storedToken);
+        await loadSummary(storedToken, windowHours);
       } else {
         setInitializing(false);
       }
@@ -74,7 +77,7 @@ export default function AdminMetricsScreen() {
     return () => {
       mounted = false;
     };
-  }, [loadSummary]);
+  }, []);
 
   const totals = summary
     ? [
@@ -92,6 +95,18 @@ export default function AdminMetricsScreen() {
         { label: t(language, 'metricsByError'), value: summary.errorsByType },
       ]
     : [];
+
+  const recentErrors = summary?.recentErrors ?? [];
+
+  async function copySummary() {
+    if (!summary) {
+      return;
+    }
+
+    const text = formatSummary(summary, language);
+    await writeClipboardText(text);
+    setStatus(t(language, 'adminSummaryCopied'));
+  }
 
   return (
     <ScrollView
@@ -171,6 +186,29 @@ export default function AdminMetricsScreen() {
         </View>
       ) : summary ? (
         <>
+          <View style={styles.row}>
+            <Text style={styles.cardBody}>{t(language, 'metricsWindow')}</Text>
+            <View style={styles.rangeRow}>
+              {([
+                { hours: 24, label: t(language, 'adminRange24h') },
+                { hours: 168, label: t(language, 'adminRange7d') },
+                { hours: 720, label: t(language, 'adminRange30d') },
+              ] as const).map((item) => (
+                <Pressable
+                  key={item.hours}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setWindowHours(item.hours);
+                    void loadSummary(token, item.hours);
+                  }}
+                  style={[styles.rangeButton, windowHours === item.hours && styles.rangeButtonActive]}
+                >
+                  <Text style={[styles.rangeButtonText, windowHours === item.hours && styles.rangeButtonTextActive]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.statsGrid}>
             {totals.map((item) => (
               <View key={item.label} style={styles.statCard}>
@@ -179,6 +217,16 @@ export default function AdminMetricsScreen() {
                 <Text style={styles.statNote}>{item.note}</Text>
               </View>
             ))}
+          </View>
+
+          <View style={styles.row}>
+            <Pressable accessibilityRole="button" onPress={copySummary} style={styles.buttonGhost}>
+              <Text style={styles.buttonGhostText}>{t(language, 'adminCopySummary')}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => loadSummary()} style={styles.buttonGhost}>
+              <RefreshCcw color={theme.colors.text} size={18} />
+              <Text style={styles.buttonGhostText}>{t(language, 'refreshMetrics')}</Text>
+            </Pressable>
           </View>
 
           {counts.map((item) => (
@@ -196,6 +244,22 @@ export default function AdminMetricsScreen() {
               )}
             </View>
           ))}
+
+          <View style={styles.recentErrorCard}>
+            <Text style={styles.recentErrorTitle}>{t(language, 'adminRecentErrors')}</Text>
+            {recentErrors.length ? recentErrors.map((error, index) => (
+              <View key={`${error.timestamp}-${error.event}-${index}`} style={index === 0 ? undefined : styles.divider}>
+                <Text style={styles.cardBody}>
+                  {`${error.event.replace(/_/g, ' ')} · ${error.platform} · ${error.errorType}`}
+                </Text>
+                <Text style={styles.recentErrorMeta}>
+                  {new Date(error.timestamp).toLocaleString(language === 'es' ? 'es-ES' : 'en-US')}
+                </Text>
+              </View>
+            )) : (
+              <Text style={styles.cardBody}>{t(language, 'adminNoRecentErrors')}</Text>
+            )}
+          </View>
         </>
       ) : (
         <View style={styles.card}>
@@ -205,16 +269,22 @@ export default function AdminMetricsScreen() {
         </View>
       )}
 
-      {summary ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => loadSummary()}
-          style={styles.buttonGhost}
-        >
-          <RefreshCcw color={theme.colors.text} size={18} />
-          <Text style={styles.buttonGhostText}>{t(language, 'refreshMetrics')}</Text>
-        </Pressable>
-      ) : null}
     </ScrollView>
   );
+}
+
+function formatSummary(summary: AnalyticsSummary, language: 'es' | 'en') {
+  const lines = [
+    `windowHours: ${summary.windowHours}`,
+    `totalEvents: ${summary.totalEvents}`,
+    `storage: ${summary.storage}`,
+    `lastUpdatedAt: ${summary.lastUpdatedAt ?? '-'}`,
+    `byEvent: ${JSON.stringify(summary.byEvent)}`,
+    `byPlatform: ${JSON.stringify(summary.byPlatform)}`,
+    `errorsByType: ${JSON.stringify(summary.errorsByType)}`,
+    `recentErrors: ${JSON.stringify(summary.recentErrors, null, 2)}`,
+    `language: ${language}`,
+  ];
+
+  return lines.join('\n');
 }

@@ -1,6 +1,6 @@
 import { list, put } from '@vercel/blob';
 
-import type { AnalyticsEventPayload, AnalyticsSummary } from '../src/shared/analytics';
+import type { AnalyticsEventPayload, AnalyticsRecentError, AnalyticsSummary } from '../src/shared/analytics';
 
 type StoredAnalyticsEvent = AnalyticsEventPayload & {
   timestamp: string;
@@ -22,7 +22,7 @@ export async function storeAnalyticsEvent(payload: AnalyticsEventPayload) {
   }
 
   const dateKey = event.timestamp.slice(0, 10);
-  const blobPath = `analytics-events/${dateKey}/${event.event}__${event.platform ?? 'unknown'}__${Date.now()}__${Math.random().toString(36).slice(2, 10)}.json`;
+  const blobPath = `analytics-events/${dateKey}/${event.event}__${event.platform ?? 'unknown'}__${sanitizeSegment(event.errorType ?? 'none')}__${Date.now()}__${Math.random().toString(36).slice(2, 10)}.json`;
   await put(blobPath, JSON.stringify(event), {
     access: 'private',
     addRandomSuffix: false,
@@ -38,6 +38,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
     byEvent: {} as Record<string, number>,
     byPlatform: {} as Record<string, number>,
     errorsByType: {} as Record<string, number>,
+    recentErrors: [] as AnalyticsRecentError[],
     totalEvents: 0,
     lastUpdatedAt: null as string | null,
   };
@@ -46,6 +47,9 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
     for (const event of inMemoryEvents) {
       accumulateFromEvent(counters, event, windowStart);
     }
+    counters.recentErrors = counters.recentErrors
+      .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
+      .slice(0, 5);
     return {
       ok: true,
       totalEvents: counters.totalEvents,
@@ -53,6 +57,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
       byEvent: counters.byEvent,
       byPlatform: counters.byPlatform,
       errorsByType: counters.errorsByType,
+      recentErrors: counters.recentErrors,
       windowHours,
       storage: 'memory',
     };
@@ -63,6 +68,10 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
     accumulateFromPath(counters, blob.pathname, windowStart);
   }
 
+  counters.recentErrors = counters.recentErrors
+    .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
+    .slice(0, 5);
+
   return {
     ok: true,
     totalEvents: counters.totalEvents,
@@ -70,6 +79,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
     byEvent: counters.byEvent,
     byPlatform: counters.byPlatform,
     errorsByType: counters.errorsByType,
+    recentErrors: counters.recentErrors,
     windowHours,
     storage: 'blob',
   };
@@ -80,6 +90,7 @@ function accumulateFromEvent(
     byEvent: Record<string, number>;
     byPlatform: Record<string, number>;
     errorsByType: Record<string, number>;
+    recentErrors: AnalyticsRecentError[];
     totalEvents: number;
     lastUpdatedAt: string | null;
   },
@@ -98,6 +109,14 @@ function accumulateFromEvent(
   }
   if (event.errorType) {
     counters.errorsByType[event.errorType] = (counters.errorsByType[event.errorType] ?? 0) + 1;
+    if (isErrorEvent(event.event)) {
+      counters.recentErrors.push({
+        event: event.event,
+        platform: event.platform ?? 'unknown',
+        errorType: event.errorType,
+        timestamp: event.timestamp,
+      });
+    }
   }
   if (!counters.lastUpdatedAt || event.timestamp > counters.lastUpdatedAt) {
     counters.lastUpdatedAt = event.timestamp;
@@ -109,6 +128,7 @@ function accumulateFromPath(
     byEvent: Record<string, number>;
     byPlatform: Record<string, number>;
     errorsByType: Record<string, number>;
+    recentErrors: AnalyticsRecentError[];
     totalEvents: number;
     lastUpdatedAt: string | null;
   },
@@ -118,7 +138,11 @@ function accumulateFromPath(
   const parts = pathname.split('/');
   const dateKey = parts[1];
   const fileName = parts.at(-1) ?? '';
-  const [eventName, platform, timestampStem] = fileName.replace(/\.json$/i, '').split('__');
+  const fileParts = fileName.replace(/\.json$/i, '').split('__');
+  const eventName = fileParts[0];
+  const platform = fileParts[1];
+  const errorType = fileParts.length >= 5 ? fileParts[2] : undefined;
+  const timestampStem = fileParts.length >= 5 ? fileParts[3] : fileParts[2];
   if (!eventName || !eventName.includes('_') || !platform || !timestampStem) {
     return;
   }
@@ -136,7 +160,40 @@ function accumulateFromPath(
   if (platform) {
     counters.byPlatform[platform] = (counters.byPlatform[platform] ?? 0) + 1;
   }
+  if (eventName?.endsWith('_error')) {
+    const parsedPlatform = normalizePlatform(platform);
+    const parsedErrorType = normalizeErrorTypeSegment(errorType);
+    counters.errorsByType[parsedErrorType] = (counters.errorsByType[parsedErrorType] ?? 0) + 1;
+    counters.recentErrors.push({
+      event: eventName as AnalyticsRecentError['event'],
+      platform: parsedPlatform,
+      errorType: parsedErrorType,
+      timestamp: new Date(eventTs).toISOString(),
+    });
+  }
   if (!counters.lastUpdatedAt || eventTs > Date.parse(counters.lastUpdatedAt)) {
     counters.lastUpdatedAt = new Date(eventTs).toISOString();
   }
+}
+
+function sanitizeSegment(value: string) {
+  return value.replace(/[^a-z0-9_-]+/gi, '-').slice(0, 48) || 'none';
+}
+
+function isErrorEvent(event: string): event is AnalyticsRecentError['event'] {
+  return event === 'resolve_error' || event === 'download_error';
+}
+
+function normalizePlatform(value: string) {
+  if (value === 'twitter' || value === 'instagram' || value === 'facebook' || value === 'tiktok' || value === 'youtube' || value === 'auto' || value === 'unknown') {
+    return value;
+  }
+  return 'unknown';
+}
+
+function normalizeErrorTypeSegment(value?: string) {
+  if (!value || value === 'none') {
+    return 'generic';
+  }
+  return value;
 }

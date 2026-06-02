@@ -124,6 +124,33 @@ export function makeAdminMetricsStyles(theme: Theme) {
       fontSize: 14,
       fontWeight: '800',
     },
+    rangeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    rangeButton: {
+      alignItems: 'center',
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 999,
+      borderWidth: 1,
+      minHeight: 34,
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+    },
+    rangeButtonActive: {
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+    },
+    rangeButtonText: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    rangeButtonTextActive: {
+      color: colors.accent,
+    },
     statsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -180,6 +207,25 @@ export function makeAdminMetricsStyles(theme: Theme) {
       color: colors.warning,
       fontSize: 13,
       fontWeight: '700',
+    },
+    recentErrorCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      gap: 8,
+      padding: 14,
+    },
+    recentErrorTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    recentErrorMeta: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
     },
     success: {
       color: colors.success,
