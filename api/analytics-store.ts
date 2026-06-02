@@ -22,7 +22,7 @@ export async function storeAnalyticsEvent(payload: AnalyticsEventPayload) {
   }
 
   const dateKey = event.timestamp.slice(0, 10);
-  const blobPath = `analytics-events/${dateKey}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`;
+  const blobPath = `analytics-events/${dateKey}/${event.event}/${event.platform ?? 'unknown'}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.json`;
   await put(blobPath, JSON.stringify(event), {
     access: 'private',
     addRandomSuffix: false,
@@ -44,7 +44,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
 
   if (!hasBlob) {
     for (const event of inMemoryEvents) {
-      accumulate(counters, event, windowStart);
+      accumulateFromEvent(counters, event, windowStart);
     }
     return {
       ok: true,
@@ -60,17 +60,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
 
   const blobs = await list({ prefix: 'analytics-events/' });
   for (const blob of blobs.blobs) {
-    const blobUrl = (blob as { downloadUrl?: string }).downloadUrl ?? blob.url;
-    const response = await fetch(blobUrl);
-    if (!response.ok) {
-      continue;
-    }
-    try {
-      const event = await response.json() as StoredAnalyticsEvent;
-      accumulate(counters, event, windowStart);
-    } catch {
-      // Ignore malformed analytics events.
-    }
+    accumulateFromPath(counters, blob.pathname, windowStart);
   }
 
   return {
@@ -85,7 +75,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
   };
 }
 
-function accumulate(
+function accumulateFromEvent(
   counters: {
     byEvent: Record<string, number>;
     byPlatform: Record<string, number>;
@@ -111,5 +101,40 @@ function accumulate(
   }
   if (!counters.lastUpdatedAt || event.timestamp > counters.lastUpdatedAt) {
     counters.lastUpdatedAt = event.timestamp;
+  }
+}
+
+function accumulateFromPath(
+  counters: {
+    byEvent: Record<string, number>;
+    byPlatform: Record<string, number>;
+    errorsByType: Record<string, number>;
+    totalEvents: number;
+    lastUpdatedAt: string | null;
+  },
+  pathname: string,
+  windowStart: number,
+) {
+  const parts = pathname.split('/');
+  const dateKey = parts[1];
+  const eventName = parts[2];
+  const platform = parts[3];
+  const timestampStem = parts[4] ?? '';
+  const timestampGuess = Number.parseInt(timestampStem.slice(0, 13), 10);
+  const eventTs = Number.isFinite(timestampGuess) ? timestampGuess : Date.parse(`${dateKey}T00:00:00.000Z`);
+
+  if (Number.isNaN(eventTs) || eventTs < windowStart) {
+    return;
+  }
+
+  counters.totalEvents += 1;
+  if (eventName) {
+    counters.byEvent[eventName] = (counters.byEvent[eventName] ?? 0) + 1;
+  }
+  if (platform) {
+    counters.byPlatform[platform] = (counters.byPlatform[platform] ?? 0) + 1;
+  }
+  if (!counters.lastUpdatedAt || eventTs > Date.parse(counters.lastUpdatedAt)) {
+    counters.lastUpdatedAt = new Date(eventTs).toISOString();
   }
 }

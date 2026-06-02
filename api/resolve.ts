@@ -30,10 +30,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       errorType: undefined,
     };
   } else {
+    const failure = result.payload as { ok: false; error: string };
     resolveEvent = {
       event: 'resolve_error',
       status: 'error',
-      errorType: classifyResolveError(result.payload.error),
+      errorType: classifyResolveError(failure.error),
     };
   }
 
