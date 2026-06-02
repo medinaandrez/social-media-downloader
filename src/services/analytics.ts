@@ -1,7 +1,5 @@
-import { Platform } from 'react-native';
-
 import { productionApiBaseUrl, stripTrailingSlash } from '@/config/appConfig';
-import type { AnalyticsEventPayload } from '@/shared/analytics';
+import type { AnalyticsEventPayload, AnalyticsSummary } from '@/shared/analytics';
 
 export async function trackAnalyticsEvent(payload: AnalyticsEventPayload) {
   try {
@@ -26,23 +24,35 @@ export async function trackAnalyticsEvent(payload: AnalyticsEventPayload) {
   }
 }
 
+export async function fetchAnalyticsSummary(hours = 24) {
+  const endpoint = getAnalyticsSummaryEndpoint(hours);
+  if (!endpoint) {
+    throw new Error('Analytics endpoint is not available.');
+  }
+
+  const response = await fetch(endpoint);
+  if (!response.ok) {
+    throw new Error(`Analytics summary request failed (${response.status})`);
+  }
+
+  return response.json() as Promise<AnalyticsSummary>;
+}
+
 function getAnalyticsEndpoint() {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   const base = stripTrailingSlash(String(fromEnv || productionApiBaseUrl));
-
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname !== 'socialm-downloader.vercel.app') {
-    return `${base}/api/analytics`;
-  }
-
   return `${base}/api/analytics`;
 }
 
+function getAnalyticsSummaryEndpoint(hours: number) {
+  const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
+  const base = stripTrailingSlash(String(fromEnv || productionApiBaseUrl));
+  return `${base}/api/analytics-summary?hours=${hours}`;
+}
+
 function currentSource() {
-  if (Platform.OS === 'web') {
+  if (typeof window !== 'undefined') {
     return 'web';
-  }
-  if (Platform.OS === 'ios') {
-    return 'ios';
   }
   return 'android';
 }
