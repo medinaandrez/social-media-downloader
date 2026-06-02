@@ -1,6 +1,7 @@
 import { list, put } from '@vercel/blob';
 
 import type { AnalyticsEventPayload, AnalyticsRecentError, AnalyticsSummary } from '../src/shared/analytics';
+import type { PlatformId } from '../src/shared/types';
 
 type StoredAnalyticsEvent = AnalyticsEventPayload & {
   timestamp: string;
@@ -30,7 +31,7 @@ export async function storeAnalyticsEvent(payload: AnalyticsEventPayload) {
   });
 }
 
-export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsSummary> {
+export async function readAnalyticsSummary(windowHours = 24, platformFilter: PlatformId | 'all' = 'all'): Promise<AnalyticsSummary> {
   const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
   const now = Date.now();
   const windowStart = now - (windowHours * 60 * 60 * 1000);
@@ -45,7 +46,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
 
   if (!hasBlob) {
     for (const event of inMemoryEvents) {
-      accumulateFromEvent(counters, event, windowStart);
+      accumulateFromEvent(counters, event, windowStart, platformFilter);
     }
     counters.recentErrors = counters.recentErrors
       .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
@@ -65,7 +66,7 @@ export async function readAnalyticsSummary(windowHours = 24): Promise<AnalyticsS
 
   const blobs = await list({ prefix: 'analytics-events/' });
   for (const blob of blobs.blobs) {
-    accumulateFromPath(counters, blob.pathname, windowStart);
+    accumulateFromPath(counters, blob.pathname, windowStart, platformFilter);
   }
 
   counters.recentErrors = counters.recentErrors
@@ -96,9 +97,14 @@ function accumulateFromEvent(
   },
   event: StoredAnalyticsEvent,
   windowStart: number,
+  platformFilter: PlatformId | 'all',
 ) {
   const eventTs = Date.parse(event.timestamp);
   if (Number.isNaN(eventTs) || eventTs < windowStart) {
+    return;
+  }
+
+  if (platformFilter !== 'all' && event.platform !== platformFilter) {
     return;
   }
 
@@ -134,6 +140,7 @@ function accumulateFromPath(
   },
   pathname: string,
   windowStart: number,
+  platformFilter: PlatformId | 'all',
 ) {
   const parts = pathname.split('/');
   const dateKey = parts[1];
@@ -150,6 +157,10 @@ function accumulateFromPath(
   const eventTs = Number.isFinite(timestampGuess) ? timestampGuess : Date.parse(`${dateKey}T00:00:00.000Z`);
 
   if (Number.isNaN(eventTs) || eventTs < windowStart) {
+    return;
+  }
+
+  if (platformFilter !== 'all' && platform !== platformFilter) {
     return;
   }
 

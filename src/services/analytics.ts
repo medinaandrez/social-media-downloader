@@ -28,8 +28,8 @@ export async function fetchAnalyticsSummary(hours = 24) {
   return fetchAnalyticsSummaryWithToken(hours);
 }
 
-export async function fetchAnalyticsSummaryWithToken(hours = 24, token?: string) {
-  const endpoint = getAnalyticsSummaryEndpoint(hours);
+export async function fetchAnalyticsSummaryWithToken(hours = 24, token?: string, platform: 'all' | 'twitter' | 'instagram' | 'facebook' | 'tiktok' | 'youtube' = 'all') {
+  const endpoint = getAnalyticsSummaryEndpoint(hours, platform);
   if (!endpoint) {
     throw new Error('Analytics endpoint is not available.');
   }
@@ -52,10 +52,14 @@ function getAnalyticsEndpoint() {
   return `${base}/api/analytics`;
 }
 
-function getAnalyticsSummaryEndpoint(hours: number) {
+function getAnalyticsSummaryEndpoint(hours: number, platform: 'all' | 'twitter' | 'instagram' | 'facebook' | 'tiktok' | 'youtube' = 'all') {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   const base = stripTrailingSlash(String(fromEnv || productionApiBaseUrl));
-  return `${base}/api/analytics-summary?hours=${hours}`;
+  const params = new URLSearchParams({
+    hours: String(hours),
+    platform,
+  });
+  return `${base}/api/analytics-summary?${params.toString()}`;
 }
 
 function currentSource() {

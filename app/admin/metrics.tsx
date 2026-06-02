@@ -9,6 +9,7 @@ import { t } from '@/i18n/translations';
 import { fetchAnalyticsSummaryWithToken } from '@/services/analytics';
 import { clearAdminMetricsToken, loadAdminMetricsToken, saveAdminMetricsToken } from '@/services/storage';
 import { writeClipboardText } from '@/features/home/home-screen.helpers';
+import { platforms } from '@/shared/platforms';
 import type { AnalyticsSummary } from '@/shared/analytics';
 
 import { makeAdminMetricsStyles } from '@/features/admin/admin-metrics.styles';
@@ -20,14 +21,20 @@ export default function AdminMetricsScreen() {
   const [token, setToken] = useState('');
   const [remember, setRemember] = useState(true);
   const [windowHours, setWindowHours] = useState<24 | 168 | 720>(24);
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'twitter' | 'instagram' | 'facebook' | 'tiktok' | 'youtube'>('all');
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
 
-  const loadSummary = useCallback(async (providedToken?: string, providedWindowHours?: 24 | 168 | 720) => {
+  const loadSummary = useCallback(async (
+    providedToken?: string,
+    providedWindowHours?: 24 | 168 | 720,
+    providedPlatformFilter?: 'all' | 'twitter' | 'instagram' | 'facebook' | 'tiktok' | 'youtube',
+  ) => {
     const nextToken = (providedToken ?? token).trim();
     const nextWindowHours = providedWindowHours ?? windowHours;
+    const nextPlatformFilter = providedPlatformFilter ?? platformFilter;
     if (!nextToken) {
       setStatus(t(language, 'adminTokenRequired'));
       return;
@@ -36,7 +43,7 @@ export default function AdminMetricsScreen() {
     setLoading(true);
     setStatus(null);
     try {
-      const data = await fetchAnalyticsSummaryWithToken(nextWindowHours, nextToken);
+      const data = await fetchAnalyticsSummaryWithToken(nextWindowHours, nextToken, nextPlatformFilter);
       setSummary(data);
       if (remember) {
         await saveAdminMetricsToken(nextToken);
@@ -52,7 +59,7 @@ export default function AdminMetricsScreen() {
       setLoading(false);
       setInitializing(false);
     }
-  }, [language, remember, token, windowHours]);
+  }, [language, platformFilter, remember, token, windowHours]);
 
   useEffect(() => {
     let mounted = true;
@@ -66,7 +73,7 @@ export default function AdminMetricsScreen() {
       if (storedToken) {
         setToken(storedToken);
         setRemember(true);
-        await loadSummary(storedToken, windowHours);
+        await loadSummary(storedToken, windowHours, platformFilter);
       } else {
         setInitializing(false);
       }
@@ -103,10 +110,15 @@ export default function AdminMetricsScreen() {
       return;
     }
 
-    const text = formatSummary(summary, language);
+    const text = formatSummary(summary, language, platformFilter);
     await writeClipboardText(text);
     setStatus(t(language, 'adminSummaryCopied'));
   }
+
+  const platformOptions = [
+    { id: 'all' as const, label: t(language, 'adminPlatformAll') },
+    ...platforms.map((platform) => ({ id: platform.id, label: platform.label })),
+  ];
 
   return (
     <ScrollView
@@ -186,6 +198,25 @@ export default function AdminMetricsScreen() {
         </View>
       ) : summary ? (
         <>
+          <View style={styles.filterCard}>
+            <Text style={styles.filterLabel}>{t(language, 'adminPlatformFilter')}</Text>
+            <View style={styles.platformRow}>
+              {platformOptions.map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setPlatformFilter(item.id);
+                    void loadSummary(token, windowHours, item.id);
+                  }}
+                  style={[styles.filterButton, platformFilter === item.id && styles.filterButtonActive]}
+                >
+                  <Text style={[styles.filterButtonText, platformFilter === item.id && styles.filterButtonTextActive]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.row}>
             <Text style={styles.cardBody}>{t(language, 'metricsWindow')}</Text>
             <View style={styles.rangeRow}>
@@ -273,9 +304,10 @@ export default function AdminMetricsScreen() {
   );
 }
 
-function formatSummary(summary: AnalyticsSummary, language: 'es' | 'en') {
+function formatSummary(summary: AnalyticsSummary, language: 'es' | 'en', platformFilter: 'all' | 'twitter' | 'instagram' | 'facebook' | 'tiktok' | 'youtube') {
   const lines = [
     `windowHours: ${summary.windowHours}`,
+    `platformFilter: ${platformFilter}`,
     `totalEvents: ${summary.totalEvents}`,
     `storage: ${summary.storage}`,
     `lastUpdatedAt: ${summary.lastUpdatedAt ?? '-'}`,

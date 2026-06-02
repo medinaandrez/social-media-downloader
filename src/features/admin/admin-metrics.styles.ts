@@ -129,6 +129,11 @@ export function makeAdminMetricsStyles(theme: Theme) {
       flexWrap: 'wrap',
       gap: 8,
     },
+    platformRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
     rangeButton: {
       alignItems: 'center',
       backgroundColor: colors.input,
@@ -149,6 +154,42 @@ export function makeAdminMetricsStyles(theme: Theme) {
       fontWeight: '800',
     },
     rangeButtonTextActive: {
+      color: colors.accent,
+    },
+    filterLabel: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    filterCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      gap: 10,
+      padding: 14,
+    },
+    filterButton: {
+      alignItems: 'center',
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 999,
+      borderWidth: 1,
+      minHeight: 34,
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+    },
+    filterButtonActive: {
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+    },
+    filterButtonText: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    filterButtonTextActive: {
       color: colors.accent,
     },
     statsGrid: {

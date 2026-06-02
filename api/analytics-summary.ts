@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { readAnalyticsSummary } from './analytics-store';
+import type { PlatformId } from '../src/shared/types';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
@@ -23,7 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const rawHours = Number.parseInt(String(req.query.hours ?? '24'), 10);
     const hours = Number.isFinite(rawHours) ? Math.min(Math.max(rawHours, 1), 24 * 30) : 24;
-    const summary = await readAnalyticsSummary(hours);
+    const platform = parsePlatformFilter(req.query.platform);
+    const summary = await readAnalyticsSummary(hours, platform);
     res.status(200).json(summary);
   } catch (error) {
     console.error('Failed to read analytics summary', error);
@@ -75,4 +77,12 @@ function safeEquals(left: string, right: string) {
     mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index);
   }
   return mismatch === 0;
+}
+
+function parsePlatformFilter(value: unknown): PlatformId | 'all' {
+  if (value === 'twitter' || value === 'instagram' || value === 'facebook' || value === 'tiktok' || value === 'youtube') {
+    return value;
+  }
+
+  return 'all';
 }
