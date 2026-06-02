@@ -7,6 +7,7 @@ const HISTORY_KEY = 'smd:history';
 const LANGUAGE_KEY = 'smd:language';
 const FAILURE_REPORTS_KEY = 'smd:failure-reports';
 const THEME_PREFERENCE_KEY = 'smd:theme-preference';
+const ADMIN_METRICS_TOKEN_KEY = 'smd:admin-metrics-token';
 
 export async function loadHistory() {
   const value = await AsyncStorage.getItem(HISTORY_KEY);
@@ -58,4 +59,16 @@ export async function loadThemePreference() {
 
 export async function saveThemePreference(themePreference: ThemePreference) {
   await AsyncStorage.setItem(THEME_PREFERENCE_KEY, themePreference);
+}
+
+export async function loadAdminMetricsToken() {
+  return AsyncStorage.getItem(ADMIN_METRICS_TOKEN_KEY);
+}
+
+export async function saveAdminMetricsToken(token: string) {
+  await AsyncStorage.setItem(ADMIN_METRICS_TOKEN_KEY, token.trim());
+}
+
+export async function clearAdminMetricsToken() {
+  await AsyncStorage.removeItem(ADMIN_METRICS_TOKEN_KEY);
 }

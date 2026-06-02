@@ -1,0 +1,188 @@
+import { StyleSheet } from 'react-native';
+
+import type { Theme } from '@/theme/palette';
+
+export function makeAdminMetricsStyles(theme: Theme) {
+  const colors = theme.colors;
+
+  return StyleSheet.create({
+    screen: {
+      backgroundColor: colors.background,
+      flex: 1,
+    },
+    content: {
+      gap: 16,
+      marginHorizontal: 'auto',
+      maxWidth: 920,
+      paddingHorizontal: 18,
+      width: '100%',
+    },
+    header: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 12,
+    },
+    iconButton: {
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      height: 44,
+      justifyContent: 'center',
+      width: 44,
+    },
+    headerText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 28,
+      fontWeight: '800',
+      lineHeight: 34,
+    },
+    subtitle: {
+      color: colors.mutedText,
+      fontSize: 14,
+      fontWeight: '600',
+      lineHeight: 20,
+      marginTop: 2,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      gap: 12,
+      padding: 14,
+    },
+    cardTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    cardBody: {
+      color: colors.mutedText,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    input: {
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      color: colors.text,
+      fontSize: 16,
+      minHeight: 46,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    row: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 10,
+      justifyContent: 'space-between',
+    },
+    rowLabel: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+      flex: 1,
+    },
+    rowValue: {
+      color: colors.mutedText,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    button: {
+      alignItems: 'center',
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    buttonText: {
+      color: colors.onAccent,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    buttonGhost: {
+      alignItems: 'center',
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderRadius: 8,
+      borderWidth: 1,
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    buttonGhostText: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      flexBasis: 190,
+      flexGrow: 1,
+      gap: 6,
+      minWidth: 180,
+      padding: 14,
+    },
+    statLabel: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    },
+    statValue: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: '800',
+    },
+    statNote: {
+      color: colors.mutedText,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    section: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 10,
+      borderWidth: 1,
+      gap: 12,
+      padding: 14,
+    },
+    sectionTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    divider: {
+      borderTopColor: colors.border,
+      borderTopWidth: 1,
+      marginTop: 4,
+      paddingTop: 10,
+    },
+    status: {
+      color: colors.warning,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    success: {
+      color: colors.success,
+    },
+  });
+}

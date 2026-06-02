@@ -25,12 +25,20 @@ export async function trackAnalyticsEvent(payload: AnalyticsEventPayload) {
 }
 
 export async function fetchAnalyticsSummary(hours = 24) {
+  return fetchAnalyticsSummaryWithToken(hours);
+}
+
+export async function fetchAnalyticsSummaryWithToken(hours = 24, token?: string) {
   const endpoint = getAnalyticsSummaryEndpoint(hours);
   if (!endpoint) {
     throw new Error('Analytics endpoint is not available.');
   }
 
-  const response = await fetch(endpoint);
+  const response = await fetch(endpoint, token ? {
+    headers: {
+      'X-Admin-Token': token,
+    },
+  } : undefined);
   if (!response.ok) {
     throw new Error(`Analytics summary request failed (${response.status})`);
   }

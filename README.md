@@ -39,6 +39,12 @@ API endpoints:
 - `POST /api/analytics` to ingest events
 - `GET /api/analytics-summary?hours=24` to get aggregated stats
 
+Private admin access:
+
+- Set `ADMIN_METRICS_TOKEN` in Vercel environment variables.
+- Open `/admin/metrics` in the web app and enter the same token.
+- When that token is configured, the summary endpoint rejects requests without it.
+
 Storage mode:
 
 - If `BLOB_READ_WRITE_TOKEN` is configured in Vercel, events are persisted in Vercel Blob and summarized from there.
