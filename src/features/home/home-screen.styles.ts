@@ -26,14 +26,8 @@ export function makeHomeStyles(theme: Theme, isCompact: boolean) {
       alignItems: 'center',
       minWidth: 50,
     },
-    brandMark: {
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 8,
-      borderWidth: 1,
+    headerSpacer: {
       height: 50,
-      justifyContent: 'center',
       width: 50,
     },
     headerText: {

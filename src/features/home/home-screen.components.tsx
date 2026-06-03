@@ -22,7 +22,6 @@ import {
   Settings,
   Share2,
   Smartphone,
-  Sparkles,
   Trash2,
   Video,
   X,
@@ -53,9 +52,7 @@ export function HomeHeader({
   return (
     <View style={styles.header}>
       <View style={styles.headerSide}>
-        <View style={styles.brandMark}>
-          <Sparkles color={theme.colors.accent} size={24} strokeWidth={2.2} />
-        </View>
+        <View style={styles.headerSpacer} />
       </View>
       <View style={styles.headerText}>
         <Text style={styles.title}>Social Media Downloader</Text>
