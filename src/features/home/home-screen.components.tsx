@@ -51,9 +51,6 @@ export function HomeHeader({
 }) {
   return (
     <View style={styles.header}>
-      <View style={styles.headerSide}>
-        <View style={styles.headerSpacer} />
-      </View>
       <View style={styles.headerText}>
         <Text style={styles.title}>Social Media Downloader</Text>
       </View>

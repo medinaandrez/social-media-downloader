@@ -26,10 +26,6 @@ export function makeHomeStyles(theme: Theme, isCompact: boolean) {
       alignItems: 'center',
       minWidth: 50,
     },
-    headerSpacer: {
-      height: 50,
-      width: 50,
-    },
     headerText: {
       flex: 1,
       minWidth: 0,
