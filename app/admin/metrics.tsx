@@ -104,6 +104,15 @@ export default function AdminMetricsScreen() {
     : [];
 
   const recentErrors = summary?.recentErrors ?? [];
+  const successEventTotal = summary
+    ? (summary.byEvent.resolve_success ?? 0) + (summary.byEvent.download_success ?? 0)
+    : 0;
+  const failureEventTotal = summary
+    ? (summary.byEvent.resolve_error ?? 0) + (summary.byEvent.download_error ?? 0)
+    : 0;
+  const successRate = successEventTotal + failureEventTotal > 0
+    ? Math.round((successEventTotal / (successEventTotal + failureEventTotal)) * 100)
+    : null;
 
   async function copySummary() {
     if (!summary) {
@@ -230,7 +239,7 @@ export default function AdminMetricsScreen() {
                   accessibilityRole="button"
                   onPress={() => {
                     setWindowHours(item.hours);
-                    void loadSummary(token, item.hours);
+                    void loadSummary(token, item.hours, platformFilter);
                   }}
                   style={[styles.rangeButton, windowHours === item.hours && styles.rangeButtonActive]}
                 >
@@ -248,6 +257,39 @@ export default function AdminMetricsScreen() {
                 <Text style={styles.statNote}>{item.note}</Text>
               </View>
             ))}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{language === 'es' ? 'Éxitos vs fallos' : 'Success vs failures'}</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>{language === 'es' ? 'Éxitos' : 'Success'}</Text>
+                <Text style={styles.statValue}>{String(successEventTotal)}</Text>
+                <Text style={styles.statNote}>
+                  {language === 'es'
+                    ? 'Suma de resoluciones y descargas exitosas.'
+                    : 'Combined successful resolves and downloads.'}
+                </Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>{language === 'es' ? 'Fallos' : 'Failures'}</Text>
+                <Text style={styles.statValue}>{String(failureEventTotal)}</Text>
+                <Text style={styles.statNote}>
+                  {language === 'es'
+                    ? 'Suma de errores de resolución y descarga.'
+                    : 'Combined resolve and download failures.'}
+                </Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>{language === 'es' ? 'Tasa de éxito' : 'Success rate'}</Text>
+                <Text style={styles.statValue}>{successRate === null ? '-' : `${successRate}%`}</Text>
+                <Text style={styles.statNote}>
+                  {language === 'es'
+                    ? 'Porcentaje de eventos que terminaron correctamente.'
+                    : 'Share of events that completed successfully.'}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <View style={styles.row}>
