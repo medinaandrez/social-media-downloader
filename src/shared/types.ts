@@ -10,6 +10,8 @@ export type Quality = 'high' | 'medium' | 'low';
 
 export type ResolveStatus = 'ready' | 'extractor_required';
 
+export type HistoryStatus = 'resolving' | 'resolved' | 'downloaded' | 'failed';
+
 export type DownloadFormat = {
   id: string;
   kind: MediaKind;
@@ -38,10 +40,13 @@ export type HistoryItem = {
   id: string;
   title: string;
   sourceUrl: string;
-  platform: PlatformId;
+  platform: PlatformId | 'unknown';
   kind: MediaKind;
-  quality: Quality;
+  quality: Quality | null;
+  status: HistoryStatus;
+  statusDetail?: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type FailureReport = {

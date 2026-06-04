@@ -8,7 +8,7 @@ import { downloadResolvedFormat } from '@/services/downloads';
 import { resolveMedia } from '@/services/resolver';
 import { detectPlatform } from '@/shared/platforms';
 import type { DownloadFormat, FailureReport, HistoryItem, MediaKind, PlatformId, Quality, ResolvedMedia } from '@/shared/types';
-import { makeHistoryItem } from '@/utils/history';
+import { makeHistoryItem, makeHistoryLinkItem } from '@/utils/history';
 
 import {
   doneMessageFor,
@@ -181,9 +181,18 @@ export function useHomeScreenState() {
     }
 
     const startedAt = Date.now();
+    const historyPlatform = getHistoryPlatform(cleanUrl, selectedPlatform);
     setLoading(true);
     setFlowPhase('resolving');
     setLastFailure(null);
+    await addHistory(makeHistoryLinkItem({
+      sourceUrl: cleanUrl,
+      title: cleanUrl,
+      platform: historyPlatform,
+      kind: selectedKind,
+      quality: null,
+      status: 'resolving',
+    }));
     await trackAnalyticsEvent({
       event: 'resolve_start',
       platform: selectedPlatform === 'auto' ? 'auto' : selectedPlatform,
@@ -191,7 +200,17 @@ export function useHomeScreenState() {
       language,
     });
     try {
-      await resolveAndApply(cleanUrl, selectedPlatform === 'auto' ? undefined : selectedPlatform, selectedKind);
+      const { media, preferred } = await resolveAndApply(cleanUrl, selectedPlatform === 'auto' ? undefined : selectedPlatform, selectedKind);
+      await addHistory(preferred
+        ? makeHistoryItem(media, preferred, 'resolved')
+        : makeHistoryLinkItem({
+            sourceUrl: media.sourceUrl,
+            title: media.title,
+            platform: media.platform,
+            kind: selectedKind,
+            quality: null,
+            status: 'resolved',
+          }));
       await trackAnalyticsEvent({
         event: 'resolve_success',
         platform: effectivePlatform ?? 'unknown',
@@ -212,6 +231,15 @@ export function useHomeScreenState() {
         errorType: normalizeErrorType(message),
         durationMs: Date.now() - startedAt,
       });
+      await addHistory(makeHistoryLinkItem({
+        sourceUrl: cleanUrl,
+        title: cleanUrl,
+        platform: historyPlatform,
+        kind: selectedKind,
+        quality: null,
+        status: 'failed',
+        statusDetail: message,
+      }));
       setLastFailure(makeFailureReport(cleanUrl, effectivePlatform ?? undefined, message));
       setFlowPhase('error');
       Alert.alert(t(language, 'resolveErrorTitle'), message);
@@ -245,7 +273,7 @@ export function useHomeScreenState() {
     setLastFailure(null);
     try {
       await downloadResolvedFormat({ media: resolved, format: actionFormat, mode, language });
-      await addHistory(makeHistoryItem(resolved, actionFormat));
+      await addHistory(makeHistoryItem(resolved, actionFormat, 'downloaded'));
       await trackAnalyticsEvent({
         event: 'download_success',
         platform: resolved.platform,
@@ -269,6 +297,15 @@ export function useHomeScreenState() {
         errorType: normalizeErrorType(message),
         durationMs: Date.now() - startedAt,
       });
+      await addHistory(makeHistoryLinkItem({
+        sourceUrl: resolved.sourceUrl,
+        title: resolved.title,
+        platform: resolved.platform,
+        kind: actionFormat.kind,
+        quality: actionFormat.quality,
+        status: 'failed',
+        statusDetail: message,
+      }));
       setLastFailure(makeFailureReport(resolved.sourceUrl, resolved.platform, message));
       setFlowPhase('error');
       Alert.alert(t(language, 'downloadErrorTitle'), message);
@@ -309,9 +346,32 @@ export function useHomeScreenState() {
     setLoading(true);
     setFlowPhase('resolving');
     setLastFailure(null);
+    await addHistory(makeHistoryLinkItem({
+      sourceUrl: item.sourceUrl,
+      title: item.title,
+      platform: item.platform,
+      kind: item.kind,
+      quality: item.quality,
+      status: 'resolving',
+    }));
 
     try {
-      const { preferred } = await resolveAndApply(item.sourceUrl, item.platform, item.kind, item.quality);
+      const { media, preferred } = await resolveAndApply(
+        item.sourceUrl,
+        item.platform === 'unknown' ? undefined : item.platform,
+        item.kind,
+        item.quality ?? undefined,
+      );
+      await addHistory(preferred
+        ? makeHistoryItem(media, preferred, 'resolved')
+        : makeHistoryLinkItem({
+            sourceUrl: media.sourceUrl,
+            title: media.title,
+            platform: media.platform,
+            kind: item.kind,
+            quality: null,
+            status: 'resolved',
+          }));
       setFlowPhase('ready');
       if (preferred) {
         setActionPhase('idle');
@@ -321,7 +381,16 @@ export function useHomeScreenState() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : t(language, 'genericError');
-      setLastFailure(makeFailureReport(item.sourceUrl, item.platform, message));
+      await addHistory(makeHistoryLinkItem({
+        sourceUrl: item.sourceUrl,
+        title: item.title,
+        platform: item.platform,
+        kind: item.kind,
+        quality: item.quality,
+        status: 'failed',
+        statusDetail: message,
+      }));
+      setLastFailure(makeFailureReport(item.sourceUrl, item.platform === 'unknown' ? undefined : item.platform, message));
       setFlowPhase('error');
       Alert.alert(t(language, 'resolveErrorTitle'), message);
     } finally {
@@ -462,6 +531,14 @@ function formatFailureReport(report: FailureReport) {
     `Message: ${report.message}`,
     `Created: ${report.createdAt}`,
   ].join('\n');
+}
+
+function getHistoryPlatform(url: string, platform: PlatformId | 'auto') {
+  if (platform !== 'auto') {
+    return platform;
+  }
+
+  return detectPlatform(url) ?? 'unknown';
 }
 
 function isStandaloneWebApp() {

@@ -749,6 +749,10 @@ function HistoryRow({
   styles: HomeStyles;
   theme: Theme;
 }) {
+  const platformText = item.platform === 'unknown' ? t(language, 'unknownPlatform') : platformLabel(item.platform);
+  const qualityText = item.quality ? item.quality.toUpperCase() : '—';
+  const statusLabel = getHistoryStatusLabel(language, item.status);
+
   return (
     <View style={styles.historyRow}>
       <View style={styles.historyIcon}>
@@ -763,8 +767,39 @@ function HistoryRow({
           {item.title}
         </Text>
         <Text style={styles.historyMeta}>
-          {platformLabel(item.platform)} - {item.kind.toUpperCase()} - {item.quality.toUpperCase()}
+          {platformText} - {item.kind.toUpperCase()} - {qualityText}
         </Text>
+        <View style={styles.historyStatusRow}>
+          <View
+            style={[
+              styles.historyStatusPill,
+              item.status === 'failed' && styles.historyStatusPillFailed,
+              item.status === 'downloaded' && styles.historyStatusPillSuccess,
+              item.status === 'resolved' && styles.historyStatusPillInfo,
+              item.status === 'resolving' && styles.historyStatusPillMuted,
+            ]}
+          >
+            <Text
+              style={[
+                styles.historyStatusText,
+                item.status === 'failed' && styles.historyStatusTextFailed,
+                item.status === 'downloaded' && styles.historyStatusTextSuccess,
+                item.status === 'resolved' && styles.historyStatusTextInfo,
+                item.status === 'resolving' && styles.historyStatusTextMuted,
+              ]}
+            >
+              {statusLabel}
+            </Text>
+          </View>
+          <Text style={styles.historyTimestamp}>
+            {new Date(item.updatedAt).toLocaleString(language === 'es' ? 'es-ES' : 'en-US')}
+          </Text>
+        </View>
+        {item.statusDetail ? (
+          <Text style={styles.historyStatusDetail} numberOfLines={2}>
+            {item.statusDetail}
+          </Text>
+        ) : null}
         <View style={styles.historyActions}>
           <Pressable accessibilityRole="button" onPress={() => onRedownload(item)} style={styles.historyActionButton}>
             <RefreshCw color={theme.colors.accent} size={14} />
@@ -782,4 +817,18 @@ function HistoryRow({
       </View>
     </View>
   );
+}
+
+function getHistoryStatusLabel(language: 'es' | 'en', status: HistoryItem['status']) {
+  if (status === 'resolving') {
+    return t(language, 'historyStatusResolving');
+  }
+  if (status === 'resolved') {
+    return t(language, 'historyStatusResolved');
+  }
+  if (status === 'downloaded') {
+    return t(language, 'historyStatusDownloaded');
+  }
+
+  return t(language, 'historyStatusFailed');
 }

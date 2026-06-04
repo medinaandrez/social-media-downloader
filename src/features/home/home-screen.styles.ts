@@ -654,6 +654,69 @@ export function makeHomeStyles(theme: Theme, isCompact: boolean) {
       fontWeight: '700',
       marginTop: 2,
     },
+    historyStatusRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 8,
+    },
+    historyStatusPill: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.surfaceSubtle,
+      borderColor: colors.border,
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    historyStatusPillMuted: {
+      backgroundColor: colors.surfaceSubtle,
+      borderColor: colors.border,
+    },
+    historyStatusPillInfo: {
+      backgroundColor: colors.accentSoft,
+      borderColor: colors.accent,
+    },
+    historyStatusPillSuccess: {
+      backgroundColor: colors.surfaceSubtle,
+      borderColor: colors.success,
+    },
+    historyStatusPillFailed: {
+      backgroundColor: colors.surfaceSubtle,
+      borderColor: colors.warning,
+    },
+    historyStatusText: {
+      color: colors.mutedText,
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.2,
+      textTransform: 'uppercase',
+    },
+    historyStatusTextMuted: {
+      color: colors.mutedText,
+    },
+    historyStatusTextInfo: {
+      color: colors.accent,
+    },
+    historyStatusTextSuccess: {
+      color: colors.success,
+    },
+    historyStatusTextFailed: {
+      color: colors.warning,
+    },
+    historyTimestamp: {
+      color: colors.mutedText,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    historyStatusDetail: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 17,
+      marginTop: 6,
+    },
     historyActions: {
       flexDirection: 'row',
       flexWrap: 'wrap',

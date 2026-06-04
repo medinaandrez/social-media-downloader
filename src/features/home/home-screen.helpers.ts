@@ -26,7 +26,11 @@ export function isDownloadableFormat(format: DownloadFormat) {
   return format.status === 'ready' && Boolean(format.downloadUrl);
 }
 
-export function platformLabel(platform: PlatformId) {
+export function platformLabel(platform: PlatformId | 'unknown') {
+  if (platform === 'unknown') {
+    return 'Unknown';
+  }
+
   return platforms.find((item) => item.id === platform)?.label ?? platform;
 }
 

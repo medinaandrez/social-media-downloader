@@ -1,4 +1,4 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { historyLimit } from '@/config/appConfig';
@@ -39,6 +39,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
   const [failureReports, setFailureReports] = useState<FailureReport[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const historyRef = useRef<HistoryItem[]>([]);
   const [language, setLanguageState] = useState<Language>('es');
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       ]);
       if (mounted) {
         setHistory(storedHistory);
+        historyRef.current = storedHistory;
         setFailureReports(storedFailureReports);
         setLanguageState(storedLanguage);
         setThemePreferenceState(storedThemePreference);
@@ -73,11 +75,13 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       await saveFailureReports(nextReports);
     },
     addHistory: async (item) => {
-      const nextHistory = [item, ...history.filter((entry) => entry.sourceUrl !== item.sourceUrl)].slice(0, historyLimit);
+      const nextHistory = upsertHistory(historyRef.current, item).slice(0, historyLimit);
+      historyRef.current = nextHistory;
       setHistory(nextHistory);
       await saveHistory(nextHistory);
     },
     clearHistory: async () => {
+      historyRef.current = [];
       setHistory([]);
       await saveHistory([]);
     },
@@ -85,7 +89,8 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     failureReports,
     history,
     removeHistoryItem: async (id) => {
-      const nextHistory = history.filter((entry) => entry.id !== id);
+      const nextHistory = historyRef.current.filter((entry) => entry.id !== id);
+      historyRef.current = nextHistory;
       setHistory(nextHistory);
       await saveHistory(nextHistory);
     },
@@ -103,6 +108,16 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }), [colorScheme, failureReports, history, language, theme, themePreference]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+function upsertHistory(history: HistoryItem[], item: HistoryItem) {
+  const existing = history.filter((entry) => entry.sourceUrl !== item.sourceUrl);
+  const merged: HistoryItem = {
+    ...item,
+    createdAt: history.find((entry) => entry.sourceUrl === item.sourceUrl)?.createdAt ?? item.createdAt,
+  };
+
+  return [merged, ...existing];
 }
 
 export function useAppState() {

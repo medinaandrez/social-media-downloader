@@ -16,7 +16,8 @@ export async function loadHistory() {
   }
 
   try {
-    return JSON.parse(value) as HistoryItem[];
+    const parsed = JSON.parse(value) as unknown[];
+    return parsed.map(normalizeHistoryItem).filter((item): item is HistoryItem => Boolean(item));
   } catch {
     return [];
   }
@@ -71,4 +72,46 @@ export async function saveAdminMetricsToken(token: string) {
 
 export async function clearAdminMetricsToken() {
   await AsyncStorage.removeItem(ADMIN_METRICS_TOKEN_KEY);
+}
+
+function normalizeHistoryItem(item: unknown): HistoryItem | null {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const candidate = item as Partial<HistoryItem> & { platform?: string; quality?: string | null };
+  if (
+    typeof candidate.id !== 'string'
+    || typeof candidate.title !== 'string'
+    || typeof candidate.sourceUrl !== 'string'
+    || typeof candidate.kind !== 'string'
+    || typeof candidate.createdAt !== 'string'
+  ) {
+    return null;
+  }
+
+  const createdAt = candidate.createdAt;
+  const updatedAt = typeof candidate.updatedAt === 'string' ? candidate.updatedAt : createdAt;
+  const status = candidate.status === 'resolving' || candidate.status === 'resolved' || candidate.status === 'downloaded' || candidate.status === 'failed'
+    ? candidate.status
+    : 'downloaded';
+  const platform = candidate.platform === 'twitter' || candidate.platform === 'instagram' || candidate.platform === 'facebook' || candidate.platform === 'tiktok' || candidate.platform === 'youtube'
+    ? candidate.platform
+    : 'unknown';
+  const quality = candidate.quality === 'high' || candidate.quality === 'medium' || candidate.quality === 'low'
+    ? candidate.quality
+    : null;
+
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    sourceUrl: candidate.sourceUrl,
+    platform,
+    kind: candidate.kind as HistoryItem['kind'],
+    quality,
+    status,
+    statusDetail: typeof candidate.statusDetail === 'string' ? candidate.statusDetail : undefined,
+    createdAt,
+    updatedAt,
+  };
 }
