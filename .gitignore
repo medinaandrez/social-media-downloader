@@ -9,6 +9,8 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+*.apk
+tmp/
 
 # Native
 .kotlin/
