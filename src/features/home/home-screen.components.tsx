@@ -516,7 +516,6 @@ export function EmptyStateCard({
   return (
     <View style={styles.emptyState}>
       <Play color={theme.colors.accent} fill={theme.colors.accentSoft} size={30} />
-      <Text style={styles.emptyTitle}>{t(language, 'emptyTitle')}</Text>
       <Text style={styles.emptyText}>{t(language, 'emptyBody')}</Text>
     </View>
   );

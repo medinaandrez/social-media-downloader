@@ -569,12 +569,6 @@ export function makeHomeStyles(theme: Theme, isCompact: boolean) {
       paddingHorizontal: 20,
       paddingVertical: 28,
     },
-    emptyTitle: {
-      color: colors.text,
-      fontSize: 18,
-      fontWeight: '800',
-      textAlign: 'center',
-    },
     emptyText: {
       color: colors.mutedText,
       fontSize: 14,
