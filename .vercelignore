@@ -6,6 +6,8 @@
 node_modules
 ios
 dist
+*.apk
+tmp
 social-media-downloader
 QA_CHECKLIST.md
 QA_RESULTS_TEMPLATE.md
