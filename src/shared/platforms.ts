@@ -68,7 +68,7 @@ export function detectPlatform(rawUrl: string): PlatformId | null {
 
 export function isSupportedPublicUrl(rawUrl: string, selectedPlatform?: PlatformId) {
   const parsed = parseUrl(rawUrl);
-  if (!parsed || !['http:', 'https:'].includes(parsed.protocol)) {
+  if (!parsed || parsed.protocol !== 'https:' || rawUrl.length > 2048) {
     return {
       ok: false as const,
       error: 'Invalid URL',
@@ -76,16 +76,14 @@ export function isSupportedPublicUrl(rawUrl: string, selectedPlatform?: Platform
   }
 
   const detected = detectPlatform(rawUrl);
-  const platform = selectedPlatform ?? detected;
-
-  if (!platform) {
+  if (!detected) {
     return {
       ok: false as const,
       error: 'Unsupported platform',
     };
   }
 
-  if (selectedPlatform && detected && selectedPlatform !== detected) {
+  if (selectedPlatform && selectedPlatform !== detected) {
     return {
       ok: false as const,
       error: 'Selected platform does not match the link',
@@ -94,8 +92,8 @@ export function isSupportedPublicUrl(rawUrl: string, selectedPlatform?: Platform
 
   return {
     ok: true as const,
-    platform,
-    normalizedUrl: normalizePlatformUrl(parsed, platform).toString(),
+    platform: detected,
+    normalizedUrl: normalizePlatformUrl(parsed, detected).toString(),
   };
 }
 

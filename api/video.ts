@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 
+import { acquireConcurrency, enforceRateLimit } from './security';
+
 const maxVideoBytes = 90 * 1024 * 1024;
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 const messages = {
@@ -39,6 +41,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  if (!enforceRateLimit(req, res, 'video', 6)) {
+    return;
+  }
+  const release = acquireConcurrency(res, 'video', 2);
+  if (!release) {
+    return;
+  }
+
   const id = randomUUID();
   const outputPrefix = `smd-video-${id}`;
   const outputTemplate = join(tmpdir(), `${outputPrefix}.%(ext)s`);
@@ -50,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '--format',
       formatSelectorFor(quality, isTwitterReplay),
       '--force-ipv4',
+      '--ignore-config',
       '--no-playlist',
       '--no-warnings',
       '--retries',
@@ -57,6 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '--quiet',
       '--socket-timeout',
       '15',
+      '--max-filesize',
+      String(maxVideoBytes),
       '--concurrent-fragments',
       isTwitterReplay ? '8' : '1',
       '--output',
@@ -67,6 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const videoStat = await stat(videoPath);
 
     if (videoStat.size > maxVideoBytes) {
+      await cleanupOutput(outputPrefix);
       res.status(413).json({ ok: false, error: messages[language].tooLarge });
       return;
     }
@@ -89,6 +103,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: false,
       error: isTimeoutError(error) ? messages[language].timeout : messages[language].prepareFailed,
     });
+  } finally {
+    release();
   }
 }
 

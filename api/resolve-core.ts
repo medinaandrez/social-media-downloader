@@ -44,6 +44,9 @@ export async function resolveMediaRequest(
   body: Partial<ResolveRequest>,
   options: ResolveOptions = {},
 ): Promise<{ status: number; payload: ResolveResponse }> {
+  if (!body || typeof body !== 'object') {
+    return { status: 400, payload: { ok: false, error: messages.es.invalidUrl } };
+  }
   const language = body.language === 'en' ? 'en' : 'es';
   const selectedPlatform = parsePlatform(body.platform);
 

@@ -61,7 +61,18 @@ function normalizeEndpoint(value: string) {
     return null;
   }
 
-  const trimmed = value.replace(/\/+$/, '');
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+  const isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].includes(parsed.hostname);
+  if (parsed.protocol !== 'https:' && !(isLocal && parsed.protocol === 'http:')) {
+    return null;
+  }
+
+  const trimmed = parsed.toString().replace(/\/+$/, '');
   if (trimmed.endsWith('/api/resolve')) {
     return trimmed;
   }

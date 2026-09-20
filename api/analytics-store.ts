@@ -23,7 +23,7 @@ export async function storeAnalyticsEvent(payload: AnalyticsEventPayload) {
   }
 
   const dateKey = event.timestamp.slice(0, 10);
-  const blobPath = `analytics-events/${dateKey}/${event.event}__${event.platform ?? 'unknown'}__${sanitizeSegment(event.errorType ?? 'none')}__${Date.now()}__${Math.random().toString(36).slice(2, 10)}.json`;
+  const blobPath = `analytics-events/${dateKey}/${sanitizeSegment(event.event)}__${sanitizeSegment(event.platform ?? 'unknown')}__${sanitizeSegment(event.errorType ?? 'none')}__${Date.now()}__${Math.random().toString(36).slice(2, 10)}.json`;
   await put(blobPath, JSON.stringify(event), {
     access: 'private',
     addRandomSuffix: false,
@@ -64,10 +64,14 @@ export async function readAnalyticsSummary(windowHours = 24, platformFilter: Pla
     };
   }
 
-  const blobs = await list({ prefix: 'analytics-events/' });
-  for (const blob of blobs.blobs) {
-    accumulateFromPath(counters, blob.pathname, windowStart, platformFilter);
-  }
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix: 'analytics-events/', cursor, limit: 1_000 });
+    for (const blob of page.blobs) {
+      accumulateFromPath(counters, blob.pathname, windowStart, platformFilter);
+    }
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
 
   counters.recentErrors = counters.recentErrors
     .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))

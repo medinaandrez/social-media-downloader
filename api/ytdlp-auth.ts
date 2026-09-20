@@ -19,7 +19,7 @@ export async function withOptionalYouTubeCookies<T>(
   }
 
   const cookiesPath = join(tmpdir(), `smd-youtube-cookies-${randomUUID()}.txt`);
-  await writeFile(cookiesPath, cookiesContent, 'utf8');
+  await writeFile(cookiesPath, cookiesContent, { encoding: 'utf8', mode: 0o600 });
 
   try {
     return await run(cookiesPath);

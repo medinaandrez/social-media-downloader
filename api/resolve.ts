@@ -2,9 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { storeAnalyticsEvent } from './analytics-store';
 import { methodNotAllowed, resolveMediaRequest } from './resolve-core';
+import { acquireConcurrency, applyCors, enforceRateLimit } from './security';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
+  applyCors(req, res, 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
@@ -16,45 +17,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const startedAt = Date.now();
-  const result = await resolveMediaRequest(req.body);
-  let resolveEvent: {
-    event: 'resolve_success' | 'resolve_error';
-    status: 'ok' | 'error';
-    errorType?: string;
-  };
-  if (result.payload.ok) {
-    resolveEvent = {
-      event: 'resolve_success',
-      status: 'ok',
-      errorType: undefined,
-    };
-  } else {
-    const failure = result.payload as { ok: false; error: string };
-    resolveEvent = {
-      event: 'resolve_error',
-      status: 'error',
-      errorType: classifyResolveError(failure.error),
-    };
+  if (!enforceRateLimit(req, res, 'resolve', 12)) {
+    return;
+  }
+  const release = acquireConcurrency(res, 'resolve', 3);
+  if (!release) {
+    return;
   }
 
-  await storeAnalyticsEvent({
-    event: resolveEvent.event,
-    source: 'api',
-    platform: parseAnalyticsPlatform(req.body?.platform),
-    language: req.body?.language === 'en' ? 'en' : 'es',
-    status: resolveEvent.status,
-    errorType: resolveEvent.errorType,
-    durationMs: Date.now() - startedAt,
-  });
-  res.status(result.status).json(result.payload);
-}
+  try {
+    const startedAt = Date.now();
+    const result = await resolveMediaRequest(req.body);
+    let resolveEvent: {
+      event: 'resolve_success' | 'resolve_error';
+      status: 'ok' | 'error';
+      errorType?: string;
+    };
+    if (result.payload.ok) {
+      resolveEvent = {
+        event: 'resolve_success',
+        status: 'ok',
+        errorType: undefined,
+      };
+    } else {
+      const failure = result.payload as { ok: false; error: string };
+      resolveEvent = {
+        event: 'resolve_error',
+        status: 'error',
+        errorType: classifyResolveError(failure.error),
+      };
+    }
 
-function setCorsHeaders(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+    try {
+      await storeAnalyticsEvent({
+        event: resolveEvent.event,
+        source: 'api',
+        platform: parseAnalyticsPlatform(req.body?.platform),
+        language: req.body?.language === 'en' ? 'en' : 'es',
+        status: resolveEvent.status,
+        errorType: resolveEvent.errorType,
+        durationMs: Date.now() - startedAt,
+      });
+    } catch (error) {
+      console.error('Failed to store resolve analytics', error);
+    }
+    res.status(result.status).json(result.payload);
+  } finally {
+    release();
+  }
 }
 
 function classifyResolveError(message: string) {

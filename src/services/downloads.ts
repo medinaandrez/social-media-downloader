@@ -51,7 +51,7 @@ export async function downloadResolvedFormat({ media, format, mode, language }: 
     return;
   }
 
-  const permission = await MediaLibrary.requestPermissionsAsync();
+  const permission = await MediaLibrary.requestPermissionsAsync(true, ['video', 'audio']);
   if (!permission.granted) {
     throw new Error(t(language, 'genericError'));
   }

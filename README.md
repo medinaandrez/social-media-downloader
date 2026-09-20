@@ -43,17 +43,14 @@ Private admin access:
 
 - Set `ADMIN_METRICS_TOKEN` in Vercel environment variables.
 - Open `/admin/metrics` in the web app and enter the same token.
-- When that token is configured, the summary endpoint rejects requests without it.
+- The app sends the token only in the `X-Admin-Token` header; tokens in query parameters are rejected.
+- The summary endpoint rejects requests without the configured token.
 - If the token is not configured, the private endpoint stays locked outside local development.
 
 Storage mode:
 
 - If `BLOB_READ_WRITE_TOKEN` is configured in Vercel, events are persisted in Vercel Blob and summarized from there.
 - If not configured, analytics fall back to in-memory/runtime logs without breaking the app.
-
-Quick production summary URL:
-
-- `https://socialm-downloader.vercel.app/api/analytics-summary?hours=24`
 
 ## Commands
 
@@ -66,6 +63,7 @@ npm run api:dev
 npm run web
 npm run web:export
 npm run typecheck
+npm run test:security
 npm run smoke:api
 npm run assets:brand
 ```

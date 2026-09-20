@@ -7,6 +7,8 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 
+import { acquireConcurrency, enforceRateLimit } from './security';
+
 const maxAudioBytes = 80 * 1024 * 1024;
 const localBinaryPath = join(process.cwd(), '.bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 const messages = {
@@ -39,6 +41,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  if (!enforceRateLimit(req, res, 'audio', 6)) {
+    return;
+  }
+  const release = acquireConcurrency(res, 'audio', 2);
+  if (!release) {
+    return;
+  }
+
   const id = randomUUID();
   const outputPrefix = `smd-audio-${id}`;
   const outputTemplate = join(tmpdir(), `${outputPrefix}.%(ext)s`);
@@ -49,6 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '--format',
       'ba/bestaudio',
       '--force-ipv4',
+      '--ignore-config',
       '--no-playlist',
       '--no-warnings',
       '--retries',
@@ -56,6 +67,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '--quiet',
       '--socket-timeout',
       '15',
+      '--max-filesize',
+      String(maxAudioBytes),
       '--output',
       outputTemplate,
     ]);
@@ -64,6 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const audioStat = await stat(audioPath);
 
     if (audioStat.size > maxAudioBytes) {
+      await cleanupOutput(outputPrefix);
       res.status(413).json({ ok: false, error: messages[language].tooLarge });
       return;
     }
@@ -86,6 +100,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: false,
       error: isTimeoutError(error) ? messages[language].timeout : messages[language].prepareFailed,
     });
+  } finally {
+    release();
   }
 }
 

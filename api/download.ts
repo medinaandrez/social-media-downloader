@@ -1,7 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+
+import { acquireConcurrency, enforceRateLimit } from './security';
 
 const maxDownloadBytes = readMaxDownloadBytes();
+const downloadTimeoutMs = 45_000;
+const maxRedirects = 3;
 const allowedRemoteHosts = [
   /^video\.twimg\.com$/i,
   /^pbs\.twimg\.com$/i,
@@ -31,6 +36,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  if (!enforceRateLimit(req, res, 'download', 20)) {
+    return;
+  }
   const sourceUrl = firstQueryValue(req.query.url);
   const filename = sanitizeFileName(firstQueryValue(req.query.filename) || 'download.mp4');
   const language = firstQueryValue(req.query.language) === 'en' ? 'en' : 'es';
@@ -40,12 +48,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const release = acquireConcurrency(res, 'download', 4);
+  if (!release) {
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), downloadTimeoutMs);
   try {
-    const upstream = await fetch(sourceUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 SocialMediaDownloader/1.0',
-      },
-    });
+    const upstream = await fetchAllowedRemoteUrl(sourceUrl, controller.signal);
 
     if (!upstream.ok) {
       res.status(502).json({ ok: false, error: messages[language].fetchFailed });
@@ -55,6 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const contentLength = Number(upstream.headers.get('content-length') ?? 0);
     if (contentLength > maxDownloadBytes) {
       res.status(413).json({ ok: false, error: messages[language].tooLarge });
+      await upstream.body?.cancel();
       return;
     }
 
@@ -70,11 +82,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     res.setHeader('Content-Type', upstream.headers.get('content-type') || contentTypeFor(filename));
     res.status(200);
-    Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
+    await pipeline(
+      Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]),
+      createByteLimitStream(maxDownloadBytes),
+      res,
+    );
   } catch (error) {
     console.error('download proxy failed', error);
-    res.status(502).json({ ok: false, error: messages[language].fetchFailed });
+    if (!res.headersSent) {
+      const tooLarge = error instanceof Error && error.message === 'DOWNLOAD_SIZE_LIMIT';
+      res.status(tooLarge ? 413 : 502).json({
+        ok: false,
+        error: tooLarge ? messages[language].tooLarge : messages[language].fetchFailed,
+      });
+    } else {
+      res.destroy();
+    }
+  } finally {
+    clearTimeout(timeout);
+    release();
   }
+}
+
+async function fetchAllowedRemoteUrl(initialUrl: string, signal: AbortSignal) {
+  let currentUrl = initialUrl;
+
+  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    if (!isAllowedRemoteUrl(currentUrl)) {
+      throw new Error('DISALLOWED_DOWNLOAD_URL');
+    }
+
+    const response = await fetch(currentUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 SocialMediaDownloader/1.0' },
+      redirect: 'manual',
+      signal,
+    });
+    if (![301, 302, 303, 307, 308].includes(response.status)) {
+      return response;
+    }
+
+    const location = response.headers.get('location');
+    await response.body?.cancel();
+    if (!location || redirectCount === maxRedirects) {
+      throw new Error('INVALID_DOWNLOAD_REDIRECT');
+    }
+    currentUrl = new URL(location, currentUrl).toString();
+  }
+
+  throw new Error('TOO_MANY_DOWNLOAD_REDIRECTS');
+}
+
+function createByteLimitStream(maxBytes: number) {
+  let receivedBytes = 0;
+  return new Transform({
+    transform(chunk, _encoding, callback) {
+      receivedBytes += Buffer.byteLength(chunk);
+      if (receivedBytes > maxBytes) {
+        callback(new Error('DOWNLOAD_SIZE_LIMIT'));
+        return;
+      }
+      callback(null, chunk);
+    },
+  });
 }
 
 function firstQueryValue(value: string | string[] | undefined) {

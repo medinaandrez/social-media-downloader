@@ -2,9 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { readAnalyticsSummary } from './analytics-store';
 import type { PlatformId } from '../src/shared/types';
+import { applyCors, enforceRateLimit, safeTokenEquals } from './security';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
+  applyCors(req, res, 'GET, OPTIONS', 'Content-Type, X-Admin-Token');
 
   if (req.method === 'OPTIONS') {
     res.status(204).end();
@@ -13,6 +14,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'GET') {
     res.status(405).json({ ok: false, error: 'Method not allowed' });
+    return;
+  }
+
+  if (!enforceRateLimit(req, res, 'analytics-summary', 20)) {
     return;
   }
 
@@ -33,28 +38,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-function setCorsHeaders(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Token');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-}
-
 function isAuthorized(req: VercelRequest) {
   const expectedToken = process.env.ADMIN_METRICS_TOKEN?.trim();
   if (!expectedToken) {
-    return isLocalRequest(req);
+    return process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1';
   }
 
   const headerToken = getHeaderValue(req.headers['x-admin-token']);
-  const queryToken = typeof req.query.token === 'string' ? req.query.token.trim() : '';
-  const provided = headerToken || queryToken;
-  return provided.length > 0 && safeEquals(provided, expectedToken);
-}
-
-function isLocalRequest(req: VercelRequest) {
-  const host = getHeaderValue(req.headers.host);
-  return host.includes('localhost') || host.includes('127.0.0.1') || host.includes('0.0.0.0');
+  return headerToken.length > 0 && safeTokenEquals(headerToken, expectedToken);
 }
 
 function getHeaderValue(value: string | string[] | undefined) {
@@ -65,18 +56,6 @@ function getHeaderValue(value: string | string[] | undefined) {
     return value[0]?.trim() ?? '';
   }
   return '';
-}
-
-function safeEquals(left: string, right: string) {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  let mismatch = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index);
-  }
-  return mismatch === 0;
 }
 
 function parsePlatformFilter(value: unknown): PlatformId | 'all' {

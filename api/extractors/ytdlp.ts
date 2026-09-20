@@ -129,6 +129,7 @@ async function runYtDlpRequest(url: string, timeoutMs: number, options: YtDlpReq
     dumpSingleJson: true,
     extractorArgs: options.extractorArgs ?? ytDlpExtractorArgs(),
     forceIpv4: true,
+    ignoreConfig: true,
     noPlaylist: true,
     noWarnings: true,
     retries: 1,
