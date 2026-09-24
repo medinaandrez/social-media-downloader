@@ -171,12 +171,15 @@ function shouldRetryYtDlp(
 
 function extractionTimeoutFor(platform: ExtractablePlatform) {
   if (platform === 'youtube') {
-    const configured = Number(process.env.YTDLP_YOUTUBE_TIMEOUT_MS || 45000);
+    const isVercelRuntime = process.env.VERCEL === '1';
+    const fallbackTimeout = isVercelRuntime ? 12000 : 45000;
+    const maxTimeout = isVercelRuntime ? 15000 : 120000;
+    const configured = Number(process.env.YTDLP_YOUTUBE_TIMEOUT_MS || fallbackTimeout);
     if (Number.isFinite(configured)) {
-      return Math.max(10000, Math.min(120000, Math.round(configured)));
+      return Math.max(8000, Math.min(maxTimeout, Math.round(configured)));
     }
 
-    return 45000;
+    return fallbackTimeout;
   }
 
   return 30000;
@@ -192,7 +195,7 @@ function ytDlpExtractorArgs() {
 }
 
 function youtubeExtractorStrategies() {
-  return uniqueValues([
+  const strategies = uniqueValues([
     process.env.YTDLP_EXTRACTOR_ARGS?.trim(),
     'youtube:player_client=mweb,default',
     'youtube:player_client=mweb,default;player_skip=webpage',
@@ -200,6 +203,10 @@ function youtubeExtractorStrategies() {
     'youtube:player_client=android,ios',
     'youtube:player_client=tv,web_embedded,ios,android,mweb,default;player_skip=webpage',
   ].filter(Boolean) as string[]);
+
+  // Vercel has a short execution window. The dedicated service can afford the
+  // complete strategy set, while the local fallback must fail fast.
+  return process.env.VERCEL === '1' ? strategies.slice(0, 2) : strategies;
 }
 
 function ytDlpProxyFor(platform: ExtractablePlatform) {

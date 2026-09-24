@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { safeTokenEquals } from '../api/security';
+import { readDedicatedYouTubeServiceConfig } from '../api/youtube-service';
 import { detectPlatform, isSupportedPublicUrl } from '../src/shared/platforms';
 
 test('rejects local and cloud metadata URLs even when a platform is selected', () => {
@@ -34,4 +35,20 @@ test('compares administrative tokens without accepting partial values', () => {
   assert.equal(safeTokenEquals('correct-token', 'correct-token'), true);
   assert.equal(safeTokenEquals('correct', 'correct-token'), false);
   assert.equal(safeTokenEquals('incorrect-token', 'correct-token'), false);
+});
+
+test('reserves time for the YouTube fallback when the dedicated service stalls', () => {
+  const previousUrl = process.env.YOUTUBE_RESOLVE_SERVICE_URL;
+  const previousTimeout = process.env.YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS;
+  process.env.YOUTUBE_RESOLVE_SERVICE_URL = 'https://youtube-service.example.com';
+  process.env.YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS = '60000';
+
+  try {
+    assert.equal(readDedicatedYouTubeServiceConfig()?.timeoutMs, 12000);
+  } finally {
+    if (previousUrl === undefined) delete process.env.YOUTUBE_RESOLVE_SERVICE_URL;
+    else process.env.YOUTUBE_RESOLVE_SERVICE_URL = previousUrl;
+    if (previousTimeout === undefined) delete process.env.YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS;
+    else process.env.YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS = previousTimeout;
+  }
 });

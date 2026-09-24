@@ -18,7 +18,7 @@ export function readDedicatedYouTubeServiceConfig(): DedicatedYouTubeServiceConf
   }
 
   const token = process.env.YOUTUBE_RESOLVE_SERVICE_TOKEN?.trim() || undefined;
-  const timeoutMs = clampTimeout(Number(process.env.YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS || 30000));
+  const timeoutMs = clampTimeout(Number(process.env.YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS || 12000));
 
   return { endpoint, token, timeoutMs };
 }
@@ -82,10 +82,11 @@ function normalizeEndpoint(value: string) {
 
 function clampTimeout(value: number) {
   if (!Number.isFinite(value)) {
-    return 30000;
+    return 12000;
   }
 
-  return Math.max(3000, Math.min(60000, Math.round(value)));
+  // Preserve enough of Vercel's execution window for the local fallback.
+  return Math.max(3000, Math.min(12000, Math.round(value)));
 }
 
 async function readJson(response: Response) {

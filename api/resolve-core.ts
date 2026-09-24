@@ -73,17 +73,17 @@ export async function resolveMediaRequest(
     const dedicatedService = readDedicatedYouTubeServiceConfig();
     if (dedicatedService) {
       try {
-        return await resolveWithDedicatedYouTubeService({
+        const dedicatedResult = await resolveWithDedicatedYouTubeService({
           url: validation.normalizedUrl,
           platform: validation.platform,
           language,
         }, dedicatedService);
+        if (dedicatedResult.payload.ok) {
+          return dedicatedResult;
+        }
+        console.warn('Dedicated YouTube service could not resolve the link; using Vercel fallback');
       } catch (error) {
-        console.warn('Dedicated YouTube service unavailable', error);
-        return {
-          status: isTimeoutError(errorDetails(error)) ? 504 : 503,
-          payload: { ok: false, error: messages[language].youtubeServiceUnavailable },
-        };
+        console.warn('Dedicated YouTube service unavailable; using Vercel fallback', error);
       }
     }
   }
@@ -113,7 +113,9 @@ async function resolveWithRetries(request: {
   url: string;
 }) {
   let lastError: unknown;
-  const attempts = request.platform === 'youtube' ? 2 : 1;
+  // YouTube already cycles through extractor strategies internally. Repeating the
+  // full cycle can exceed a serverless function's execution window.
+  const attempts = 1;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
