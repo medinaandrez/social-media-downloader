@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <rect width="1600" height="980" fill="#F3F5F2"/>
+
+  <text x="90" y="92" fill="#17201C" font-family="Helvetica, Arial, sans-serif" font-size="42" font-weight="700">Social Media Downloader</text>
+  <text x="90" y="137" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="24">Tres direcciones planas, sin degradados, sombras ni detalles decorativos</text>
+
+  <!-- Proposal 1 -->
+  <g transform="translate(70 195)">
+    <rect width="460" height="690" rx="36" fill="#FFFFFF" stroke="#DDE5E1" stroke-width="2"/>
+    <rect x="70" y="60" width="320" height="320" rx="72" fill="#0B5F51"/>
+    <path d="M230 132V275M174 222L230 278L286 222" fill="none" stroke="#F7FFFB" stroke-linecap="round" stroke-linejoin="round" stroke-width="34"/>
+    <path d="M148 315V330C148 346 160 358 176 358H284C300 358 312 346 312 330V315" fill="none" stroke="#55D6B5" stroke-linecap="round" stroke-width="24"/>
+    <text x="54" y="448" fill="#0D7C66" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">01 · BANDEJA</text>
+    <text x="54" y="492" fill="#17201C" font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700">Directo y funcional</text>
+    <text x="54" y="535" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="21">Una sola acción: guardar.</text>
+    <text x="54" y="568" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="21">Reconocible incluso a 24 px.</text>
+    <rect x="54" y="610" width="50" height="50" rx="11" fill="#0B5F51"/>
+    <path d="M79 620V642M70 635L79 644L88 635" fill="none" stroke="#F7FFFB" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"/>
+    <path d="M66 649V651C66 654 68 656 71 656H87C90 656 92 654 92 651V649" fill="none" stroke="#55D6B5" stroke-linecap="round" stroke-width="4"/>
+    <text x="120" y="644" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="18">Vista pequeña</text>
+  </g>
+
+  <!-- Proposal 2 -->
+  <g transform="translate(570 195)">
+    <rect width="460" height="690" rx="36" fill="#FFFFFF" stroke="#DDE5E1" stroke-width="2"/>
+    <rect x="70" y="60" width="320" height="320" rx="72" fill="#C9F0E4"/>
+    <path d="M166 126H238C281 126 310 151 310 190C310 228 284 250 246 250H214" fill="none" stroke="#0B5F51" stroke-linecap="round" stroke-linejoin="round" stroke-width="38"/>
+    <path d="M294 232V307M254 273L294 313L334 273" fill="none" stroke="#0B5F51" stroke-linecap="round" stroke-linejoin="round" stroke-width="30"/>
+    <path d="M166 126V314H218" fill="none" stroke="#0B5F51" stroke-linecap="round" stroke-linejoin="round" stroke-width="38"/>
+    <text x="54" y="448" fill="#0D7C66" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">02 · MONOGRAMA</text>
+    <text x="54" y="492" fill="#17201C" font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700">Una “D” propia</text>
+    <text x="54" y="535" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="21">La letra y la descarga forman</text>
+    <text x="54" y="568" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="21">una sola marca compacta.</text>
+    <rect x="54" y="610" width="50" height="50" rx="11" fill="#C9F0E4"/>
+    <path d="M69 620H80C87 620 91 624 91 630C91 636 87 639 81 639H76M88 636V648M82 643L88 649L94 643M69 620V650H77" fill="none" stroke="#0B5F51" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.5"/>
+    <text x="120" y="644" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="18">Vista pequeña</text>
+  </g>
+
+  <!-- Proposal 3 -->
+  <g transform="translate(1070 195)">
+    <rect width="460" height="690" rx="36" fill="#FFFFFF" stroke="#DDE5E1" stroke-width="2"/>
+    <rect x="70" y="60" width="320" height="320" rx="72" fill="#F4F0E6"/>
+    <path d="M144 157C144 137 160 121 180 121H280C300 121 316 137 316 157V283C316 303 300 319 280 319H180C160 319 144 303 144 283V157Z" fill="#173D35"/>
+    <path d="M230 157V255M188 216L230 258L272 216" fill="none" stroke="#F4F0E6" stroke-linecap="round" stroke-linejoin="round" stroke-width="30"/>
+    <rect x="188" y="290" width="84" height="29" rx="14.5" fill="#55D6B5"/>
+    <text x="54" y="448" fill="#0D7C66" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">03 · BOLSILLO</text>
+    <text x="54" y="492" fill="#17201C" font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700">Más editorial</text>
+    <text x="54" y="535" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="21">Un contenedor sólido con una</text>
+    <text x="54" y="568" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="21">pestaña de color memorable.</text>
+    <rect x="54" y="610" width="50" height="50" rx="11" fill="#F4F0E6"/>
+    <rect x="65" y="619" width="28" height="33" rx="6" fill="#173D35"/>
+    <path d="M79 624V640M73 634L79 640L85 634" fill="none" stroke="#F4F0E6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+    <rect x="73" y="648" width="12" height="4" rx="2" fill="#55D6B5"/>
+    <text x="120" y="644" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="18">Vista pequeña</text>
+  </g>
+
+  <text x="800" y="938" text-anchor="middle" fill="#6B7772" font-family="Helvetica, Arial, sans-serif" font-size="19">Paleta compatible con la interfaz actual · preparada para iOS, Android y web</text>
+</svg>

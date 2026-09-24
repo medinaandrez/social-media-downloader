@@ -2,167 +2,100 @@ import { writeFile } from 'node:fs/promises';
 import { PNG } from 'pngjs';
 
 const colors = {
-  background: '#071511',
-  backgroundLight: '#0d201b',
-  accent: '#50d4b4',
-  accentDark: '#12856f',
-  white: '#f7fffb',
+  background: '#0B5F51',
+  accent: '#55D6B5',
+  foreground: '#F7FFFB',
 };
 
 await writeFile('assets/icon.png', renderIcon(1024, { background: true, scale: 1 }));
-await writeFile('assets/adaptive-icon.png', renderIcon(1024, { background: false, scale: 0.92 }));
-await writeFile('assets/splash-icon.png', renderIcon(1024, { background: false, scale: 0.82 }));
+await writeFile('assets/adaptive-icon.png', renderIcon(1024, { background: false, scale: 0.84 }));
+await writeFile('assets/splash-icon.png', renderIcon(1024, { background: false, scale: 0.76 }));
 await writeFile('assets/favicon.png', renderIcon(48, { background: true, scale: 1 }));
 
 function renderIcon(size, options) {
-  const scale = 4;
-  const canvas = createCanvas(size * scale, size * scale);
-  const s = size * scale;
+  const supersampling = 4;
+  const canvas = createCanvas(size * supersampling, size * supersampling);
+  const canvasSize = size * supersampling;
 
   if (options.background) {
-    fillRect(canvas, 0, 0, s, s, colors.background);
-    fillCircle(canvas, s * 0.22, s * 0.18, s * 0.52, rgba(colors.backgroundLight, 0.9));
-    fillCircle(canvas, s * 0.86, s * 0.82, s * 0.48, rgba(colors.accentDark, 0.2));
+    fillRect(canvas, 0, 0, canvasSize, canvasSize, colors.background);
   }
 
-  const markScale = options.scale;
-  const cx = s / 2;
-  const cy = s / 2;
-  const unit = s * 0.54 * markScale;
-  const left = cx - unit / 2;
-  const top = cy - unit / 2;
-
-  roundRect(canvas, left, top, unit, unit, unit * 0.18, rgba(colors.white, 0.08));
-  strokeRoundRect(canvas, left, top, unit, unit, unit * 0.18, colors.accent, Math.max(10 * scale, s * 0.018));
-
-  const play = [
-    [cx - unit * 0.12, cy - unit * 0.22],
-    [cx - unit * 0.12, cy + unit * 0.22],
-    [cx + unit * 0.24, cy],
-  ];
-  fillPolygon(canvas, play, colors.white);
-
-  const arrowX = cx;
-  const arrowTop = cy + unit * 0.17;
-  const arrowBottom = cy + unit * 0.39;
-  const stroke = Math.max(13 * scale, s * 0.022);
-  strokeLine(canvas, arrowX, arrowTop, arrowX, arrowBottom, colors.accent, stroke);
-  strokeLine(canvas, arrowX, arrowBottom, arrowX - unit * 0.12, arrowBottom - unit * 0.12, colors.accent, stroke);
-  strokeLine(canvas, arrowX, arrowBottom, arrowX + unit * 0.12, arrowBottom - unit * 0.12, colors.accent, stroke);
-  strokeLine(canvas, cx - unit * 0.22, cy + unit * 0.47, cx + unit * 0.22, cy + unit * 0.47, colors.accent, stroke);
-
+  drawMark(canvas, canvasSize, options.scale);
   return downsample(canvas, size, size);
+}
+
+function drawMark(canvas, size, markScale) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const scaleX = (value) => cx + (value - 0.5) * size * markScale;
+  const scaleY = (value) => cy + (value - 0.5) * size * markScale;
+  const arrowStroke = size * 0.088 * markScale;
+  const trayStroke = size * 0.056 * markScale;
+
+  strokeLine(canvas, scaleX(0.5), scaleY(0.22), scaleX(0.5), scaleY(0.59), colors.foreground, arrowStroke);
+  strokeLine(canvas, scaleX(0.34), scaleY(0.43), scaleX(0.5), scaleY(0.59), colors.foreground, arrowStroke);
+  strokeLine(canvas, scaleX(0.66), scaleY(0.43), scaleX(0.5), scaleY(0.59), colors.foreground, arrowStroke);
+
+  const trayPoints = [
+    [0.30, 0.69],
+    [0.30, 0.73],
+    [0.305, 0.755],
+    [0.32, 0.78],
+    [0.345, 0.80],
+    [0.38, 0.81],
+    [0.62, 0.81],
+    [0.655, 0.80],
+    [0.68, 0.78],
+    [0.695, 0.755],
+    [0.70, 0.73],
+    [0.70, 0.69],
+  ].map(([x, y]) => [scaleX(x), scaleY(y)]);
+
+  strokePolyline(canvas, trayPoints, colors.accent, trayStroke);
 }
 
 function createCanvas(width, height) {
   const png = new PNG({ width, height, colorType: 6 });
-  for (let i = 0; i < png.data.length; i += 4) {
-    png.data[i] = 0;
-    png.data[i + 1] = 0;
-    png.data[i + 2] = 0;
-    png.data[i + 3] = 0;
-  }
+  png.data.fill(0);
   return png;
 }
 
 function fillRect(canvas, x, y, width, height, color) {
-  const c = parseColor(color);
+  const parsed = parseColor(color);
   for (let py = Math.max(0, Math.floor(y)); py < Math.min(canvas.height, Math.ceil(y + height)); py += 1) {
     for (let px = Math.max(0, Math.floor(x)); px < Math.min(canvas.width, Math.ceil(x + width)); px += 1) {
-      setPixel(canvas, px, py, c);
+      setPixel(canvas, px, py, parsed);
     }
   }
 }
 
-function fillCircle(canvas, cx, cy, radius, color) {
-  const c = parseColor(color);
-  const r2 = radius * radius;
-  for (let y = Math.max(0, Math.floor(cy - radius)); y < Math.min(canvas.height, Math.ceil(cy + radius)); y += 1) {
-    for (let x = Math.max(0, Math.floor(cx - radius)); x < Math.min(canvas.width, Math.ceil(cx + radius)); x += 1) {
-      if ((x - cx) ** 2 + (y - cy) ** 2 <= r2) {
-        blendPixel(canvas, x, y, c);
-      }
-    }
-  }
-}
-
-function roundRect(canvas, x, y, width, height, radius, color) {
-  const c = parseColor(color);
-  for (let py = Math.floor(y); py < Math.ceil(y + height); py += 1) {
-    for (let px = Math.floor(x); px < Math.ceil(x + width); px += 1) {
-      if (insideRoundRect(px, py, x, y, width, height, radius)) {
-        blendPixel(canvas, px, py, c);
-      }
-    }
-  }
-}
-
-function strokeRoundRect(canvas, x, y, width, height, radius, color, strokeWidth) {
-  const c = parseColor(color);
-  for (let py = Math.floor(y - strokeWidth); py < Math.ceil(y + height + strokeWidth); py += 1) {
-    for (let px = Math.floor(x - strokeWidth); px < Math.ceil(x + width + strokeWidth); px += 1) {
-      const outer = insideRoundRect(px, py, x, y, width, height, radius);
-      const inner = insideRoundRect(
-        px,
-        py,
-        x + strokeWidth,
-        y + strokeWidth,
-        width - strokeWidth * 2,
-        height - strokeWidth * 2,
-        Math.max(0, radius - strokeWidth),
-      );
-      if (outer && !inner) {
-        blendPixel(canvas, px, py, c);
-      }
-    }
-  }
-}
-
-function insideRoundRect(px, py, x, y, width, height, radius) {
-  const rx = Math.max(x + radius, Math.min(px, x + width - radius));
-  const ry = Math.max(y + radius, Math.min(py, y + height - radius));
-  return (px - rx) ** 2 + (py - ry) ** 2 <= radius ** 2;
-}
-
-function fillPolygon(canvas, points, color) {
-  const c = parseColor(color);
-  const minY = Math.floor(Math.min(...points.map((point) => point[1])));
-  const maxY = Math.ceil(Math.max(...points.map((point) => point[1])));
-
-  for (let y = minY; y <= maxY; y += 1) {
-    const intersections = [];
-    for (let i = 0; i < points.length; i += 1) {
-      const [x1, y1] = points[i];
-      const [x2, y2] = points[(i + 1) % points.length];
-      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
-        intersections.push(x1 + ((y - y1) * (x2 - x1)) / (y2 - y1));
-      }
-    }
-    intersections.sort((a, b) => a - b);
-    for (let i = 0; i < intersections.length; i += 2) {
-      for (let x = Math.floor(intersections[i]); x <= Math.ceil(intersections[i + 1]); x += 1) {
-        blendPixel(canvas, x, y, c);
-      }
-    }
+function strokePolyline(canvas, points, color, width) {
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const [x1, y1] = points[index];
+    const [x2, y2] = points[index + 1];
+    strokeLine(canvas, x1, y1, x2, y2, color, width);
   }
 }
 
 function strokeLine(canvas, x1, y1, x2, y2, color, width) {
-  const c = parseColor(color);
+  const parsed = parseColor(color);
   const minX = Math.floor(Math.min(x1, x2) - width);
   const maxX = Math.ceil(Math.max(x1, x2) + width);
   const minY = Math.floor(Math.min(y1, y2) - width);
   const maxY = Math.ceil(Math.max(y1, y2) + width);
-  const length2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+  const lengthSquared = (x2 - x1) ** 2 + (y2 - y1) ** 2;
   const radius = width / 2;
 
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
-      const t = Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / length2));
-      const px = x1 + t * (x2 - x1);
-      const py = y1 + t * (y2 - y1);
-      if ((x - px) ** 2 + (y - py) ** 2 <= radius ** 2) {
-        blendPixel(canvas, x, y, c);
+      const position = lengthSquared === 0
+        ? 0
+        : Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / lengthSquared));
+      const nearestX = x1 + position * (x2 - x1);
+      const nearestY = y1 + position * (y2 - y1);
+      if ((x - nearestX) ** 2 + (y - nearestY) ** 2 <= radius ** 2) {
+        blendPixel(canvas, x, y, parsed);
       }
     }
   }
@@ -179,34 +112,26 @@ function downsample(source, width, height) {
       let samples = 0;
       for (let sy = Math.floor(y * scaleY); sy < Math.floor((y + 1) * scaleY); sy += 1) {
         for (let sx = Math.floor(x * scaleX); sx < Math.floor((x + 1) * scaleX); sx += 1) {
-          const index = (source.width * sy + sx) * 4;
-          totals[0] += source.data[index];
-          totals[1] += source.data[index + 1];
-          totals[2] += source.data[index + 2];
-          totals[3] += source.data[index + 3];
+          const sourceIndex = (source.width * sy + sx) * 4;
+          totals[0] += source.data[sourceIndex];
+          totals[1] += source.data[sourceIndex + 1];
+          totals[2] += source.data[sourceIndex + 2];
+          totals[3] += source.data[sourceIndex + 3];
           samples += 1;
         }
       }
-      const index = (width * y + x) * 4;
-      target.data[index] = Math.round(totals[0] / samples);
-      target.data[index + 1] = Math.round(totals[1] / samples);
-      target.data[index + 2] = Math.round(totals[2] / samples);
-      target.data[index + 3] = Math.round(totals[3] / samples);
+      const targetIndex = (width * y + x) * 4;
+      target.data[targetIndex] = Math.round(totals[0] / samples);
+      target.data[targetIndex + 1] = Math.round(totals[1] / samples);
+      target.data[targetIndex + 2] = Math.round(totals[2] / samples);
+      target.data[targetIndex + 3] = Math.round(totals[3] / samples);
     }
   }
 
   return PNG.sync.write(target);
 }
 
-function rgba(hex, alpha) {
-  const c = parseColor(hex);
-  return { ...c, a: Math.round(alpha * 255) };
-}
-
 function parseColor(value) {
-  if (typeof value === 'object') {
-    return value;
-  }
   const hex = value.replace('#', '');
   return {
     r: Number.parseInt(hex.slice(0, 2), 16),
