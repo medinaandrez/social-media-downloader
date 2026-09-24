@@ -30,7 +30,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 import { t } from '@/i18n/translations';
-import { platforms } from '@/shared/platforms';
+import { getEnabledPlatforms } from '@/shared/platforms';
 import type { DownloadFormat, FailureReport, HistoryItem, MediaKind, PlatformId, ResolvedMedia } from '@/shared/types';
 import type { Theme } from '@/theme/palette';
 
@@ -251,7 +251,7 @@ export function LinkPanel({
             }}
             styles={styles}
           />
-          {platforms.map((platform) => (
+          {getEnabledPlatforms().map((platform) => (
             <PlatformButton
               active={selectedPlatform === platform.id || (selectedPlatform === 'auto' && effectivePlatform === platform.id)}
               key={platform.id}

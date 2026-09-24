@@ -16,8 +16,8 @@ test('rejects local and cloud metadata URLs even when a platform is selected', (
 });
 
 test('requires HTTPS for supported platforms', () => {
-  assert.equal(isSupportedPublicUrl('http://www.youtube.com/watch?v=PeLru2q5Z0E', 'youtube').ok, false);
-  assert.equal(isSupportedPublicUrl('https://www.youtube.com/watch?v=PeLru2q5Z0E', 'youtube').ok, true);
+  assert.equal(isSupportedPublicUrl('http://x.com/user/status/123456789', 'twitter').ok, false);
+  assert.equal(isSupportedPublicUrl('https://x.com/user/status/123456789', 'twitter').ok, true);
 });
 
 test('rejects a platform that does not match the URL', () => {
@@ -26,9 +26,22 @@ test('rejects a platform that does not match the URL', () => {
 });
 
 test('keeps supported platform detection working', () => {
-  assert.equal(detectPlatform('https://youtu.be/PeLru2q5Z0E'), 'youtube');
   assert.equal(detectPlatform('https://www.instagram.com/reel/example/'), 'instagram');
   assert.equal(detectPlatform('https://x.com/user/status/123456789'), 'twitter');
+});
+
+test('keeps YouTube hidden unless its feature flag is enabled', () => {
+  const previousValue = process.env.YOUTUBE_ENABLED;
+  delete process.env.YOUTUBE_ENABLED;
+
+  try {
+    assert.equal(detectPlatform('https://youtu.be/PeLru2q5Z0E'), null);
+    process.env.YOUTUBE_ENABLED = 'true';
+    assert.equal(detectPlatform('https://youtu.be/PeLru2q5Z0E'), 'youtube');
+  } finally {
+    if (previousValue === undefined) delete process.env.YOUTUBE_ENABLED;
+    else process.env.YOUTUBE_ENABLED = previousValue;
+  }
 });
 
 test('compares administrative tokens without accepting partial values', () => {

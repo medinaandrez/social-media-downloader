@@ -17,6 +17,7 @@ import {
 } from '@/features/settings/settings-screen.components';
 import { makeSettingsStyles } from '@/features/settings/settings-screen.styles';
 import { t } from '@/i18n/translations';
+import { isYouTubeEnabled } from '@/shared/platforms';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -119,10 +120,12 @@ export default function SettingsScreen() {
           <Text style={styles.authorName}>{t(language, 'authorName')}</Text>
           <Text style={styles.authorRole}>{t(language, 'authorRole')}</Text>
         </View>
-        <View style={styles.noticeCard}>
-          <Text style={styles.noticeTitle}>{t(language, 'youtubeBestEffortTitle')}</Text>
-          <Text style={styles.noticeBody}>{t(language, 'youtubeBestEffortBody')}</Text>
-        </View>
+        {isYouTubeEnabled() ? (
+          <View style={styles.noticeCard}>
+            <Text style={styles.noticeTitle}>{t(language, 'youtubeBestEffortTitle')}</Text>
+            <Text style={styles.noticeBody}>{t(language, 'youtubeBestEffortBody')}</Text>
+          </View>
+        ) : null}
         <View style={styles.optionGrid}>
           <LinkButton
             icon="globe"

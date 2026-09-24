@@ -84,6 +84,15 @@ npm run server:install-ytdlp
 
 ### Optional YouTube cookies
 
+YouTube is disabled by default without removing its implementation. To enable it again, set both flags and redeploy/rebuild the corresponding targets:
+
+```bash
+YOUTUBE_ENABLED=true
+EXPO_PUBLIC_YOUTUBE_ENABLED=true
+```
+
+`YOUTUBE_ENABLED` enables the backend extractor. `EXPO_PUBLIC_YOUTUBE_ENABLED` makes YouTube visible in web and native builds.
+
 YouTube may occasionally require anti-bot verification for some public videos when `yt-dlp` runs from a server environment. This project supports optional YouTube cookies through environment variables:
 
 ```bash

@@ -40,6 +40,15 @@ export const platforms: PlatformConfig[] = [
   },
 ];
 
+export function isYouTubeEnabled() {
+  return process.env.EXPO_PUBLIC_YOUTUBE_ENABLED === 'true'
+    || process.env.YOUTUBE_ENABLED === 'true';
+}
+
+export function getEnabledPlatforms() {
+  return platforms.filter((platform) => platform.id !== 'youtube' || isYouTubeEnabled());
+}
+
 export function detectPlatform(rawUrl: string): PlatformId | null {
   const parsed = parseUrl(rawUrl);
   if (!parsed) {
@@ -53,11 +62,11 @@ export function detectPlatform(rawUrl: string): PlatformId | null {
     return 'facebook';
   }
 
-  if (/^youtu\.be$/i.test(host) && /^\/[a-z0-9_-]{6,}$/i.test(pathname)) {
+  if (isYouTubeEnabled() && /^youtu\.be$/i.test(host) && /^\/[a-z0-9_-]{6,}$/i.test(pathname)) {
     return 'youtube';
   }
 
-  const platform = platforms.find((item) => {
+  const platform = getEnabledPlatforms().find((item) => {
     const hostMatches = item.hostPatterns.some((pattern) => pattern.test(host) || pattern.test(parsed.hostname));
     const pathMatches = item.pathPatterns.some((pattern) => pattern.test(pathname));
     return hostMatches && pathMatches;
