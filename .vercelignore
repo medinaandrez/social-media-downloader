@@ -5,6 +5,7 @@
 .env*
 node_modules
 ios
+android
 dist
 *.apk
 tmp
