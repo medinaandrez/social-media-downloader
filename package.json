@@ -6,6 +6,7 @@
     "postinstall": "node scripts/install-ytdlp.mjs",
     "start": "expo start",
     "android": "expo run:android",
+    "android:apk": "bash scripts/build-android-apk.sh",
     "android:doctor": "bash scripts/android-doctor.sh",
     "android:devices": "bash scripts/with-android-env.sh adb devices",
     "android:sdk": "bash scripts/android-install-sdk.sh",
