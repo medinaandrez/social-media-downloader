@@ -1,4 +1,5 @@
 import { extractWithYtDlp } from './extractors/ytdlp';
+import { ApifyYouTubeError, isApifyYouTubeConfigured, resolveWithApifyYouTube } from './apify-youtube';
 import { readDedicatedYouTubeServiceConfig, resolveWithDedicatedYouTubeService } from './youtube-service';
 import { isSupportedPublicUrl } from '../src/shared/platforms';
 import type { Language, PlatformId, ResolveRequest, ResolveResponse } from '../src/shared/types';
@@ -67,6 +68,19 @@ export async function resolveMediaRequest(
             : messages[language].invalidUrl,
       },
     };
+  }
+
+  if (validation.platform === 'youtube' && isApifyYouTubeConfigured()) {
+    try {
+      const media = await resolveWithApifyYouTube(validation.normalizedUrl, language);
+      return { status: 200, payload: { ok: true, media } };
+    } catch (error) {
+      if (error instanceof ApifyYouTubeError) {
+        return { status: error.status, payload: { ok: false, error: error.message } };
+      }
+      console.error('Apify YouTube resolution failed', error);
+      return { status: 502, payload: { ok: false, error: messages[language].youtubeTryLater } };
+    }
   }
 
   if (validation.platform === 'youtube' && options.allowDedicatedYouTubeService !== false) {

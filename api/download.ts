@@ -16,6 +16,7 @@ const allowedRemoteHosts = [
   /(^|\.)muscdn\.com$/i,
   /(^|\.)akamaized\.net$/i,
   /(^|\.)googlevideo\.com$/i,
+  /^api\.apify\.com$/i,
 ];
 const messages = {
   es: {
