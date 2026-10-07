@@ -1,5 +1,5 @@
 import { extractWithYtDlp } from './extractors/ytdlp';
-import { ApifyYouTubeError, isApifyYouTubeConfigured, resolveWithApifyYouTube } from './apify-youtube';
+import { ApifyYouTubeError, isApifyYouTubeConfigured, resolveWithApifyYouTube } from '../src/server/apify-youtube';
 import { readDedicatedYouTubeServiceConfig, resolveWithDedicatedYouTubeService } from './youtube-service';
 import { isSupportedPublicUrl } from '../src/shared/platforms';
 import type { Language, PlatformId, ResolveRequest, ResolveResponse } from '../src/shared/types';

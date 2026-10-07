@@ -1,4 +1,4 @@
-import type { Language, ResolvedMedia } from '../src/shared/types';
+import type { Language, ResolvedMedia } from '../shared/types';
 
 const actorId = process.env.APIFY_YOUTUBE_ACTOR_ID?.trim() || 'marielise.dev~youtube-video-downloader';
 const maxChargeUsd = 0.5;

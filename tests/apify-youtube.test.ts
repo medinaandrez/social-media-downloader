@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveWithApifyYouTube } from '../api/apify-youtube';
+import { resolveWithApifyYouTube } from '../src/server/apify-youtube';
 
 test('runs the tested Actor with residential fallback disabled and a per-run cost cap', async () => {
   const previousToken = process.env.APIFY_API_TOKEN;
