@@ -513,10 +513,14 @@ export function EmptyStateCard({
   styles: HomeStyles;
   theme: Theme;
 }) {
+  const emptyBodyKey = getEnabledPlatforms().some((platform) => platform.id === 'youtube')
+    ? 'emptyBodyWithYouTube'
+    : 'emptyBody';
+
   return (
     <View style={styles.emptyState}>
       <Play color={theme.colors.accent} fill={theme.colors.accentSoft} size={30} />
-      <Text style={styles.emptyText}>{t(language, 'emptyBody')}</Text>
+      <Text style={styles.emptyText}>{t(language, emptyBodyKey)}</Text>
     </View>
   );
 }
