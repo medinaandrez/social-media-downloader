@@ -135,13 +135,22 @@ YOUTUBE_RESOLVE_SERVICE_TIMEOUT_MS=30000
 
 Standalone service:
 
+Use Node.js 22 LTS. The installer pins the token plugin and server to the same
+version (2.0.1), and Docker uses that same installer. The token server listens
+only on loopback; do not expose its port publicly.
+
+For an anonymous staging test, enable YouTube only on the dedicated service.
+Leave both YouTube feature flags disabled on Vercel and in mobile builds until
+remote extraction and complete downloads have been verified. Do not configure
+account cookies for this test; cookies and proxies are optional, not prerequisites.
+
 ```bash
-PORT=3200
-YOUTUBE_RESOLVE_SERVICE_TOKEN=change-me
-YTDLP_YOUTUBE_COOKIES_B64=...
-YTDLP_YOUTUBE_PROXY=http://user:pass@host:port
-YTDLP_YOUTUBE_TIMEOUT_MS=45000
-npm run youtube:service
+export PORT=3200
+export YOUTUBE_ENABLED=true
+export YOUTUBE_RESOLVE_SERVICE_TOKEN=change-me
+export YTDLP_YOUTUBE_TIMEOUT_MS=45000
+npm run youtube:provider:install
+npm run youtube:service:render
 ```
 
 The main Vercel backend will:
@@ -156,7 +165,7 @@ Docker deploy option:
 docker build -f Dockerfile.youtube -t smd-youtube-service .
 docker run --rm -p 3200:3200 \
   -e YOUTUBE_RESOLVE_SERVICE_TOKEN=change-me \
-  -e YTDLP_YOUTUBE_COOKIES_B64=... \
+  -e YOUTUBE_ENABLED=true \
   smd-youtube-service
 ```
 
@@ -169,7 +178,8 @@ render.yaml
 Use the included `render.yaml` to create a web service named `social-media-downloader-youtube`, then set:
 
 - `YOUTUBE_RESOLVE_SERVICE_TOKEN`
-- `YTDLP_YOUTUBE_COOKIES_B64`
+- `YOUTUBE_ENABLED=true` on the dedicated service only during staging tests
+- `YTDLP_YOUTUBE_COOKIES_B64` only if explicitly choosing authenticated extraction
 - `YTDLP_YOUTUBE_PROXY` when YouTube blocks the provider IP
 - `YTDLP_YOUTUBE_TIMEOUT_MS=45000`
 

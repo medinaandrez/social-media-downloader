@@ -18,7 +18,7 @@ for candidate in \
 done
 
 if [ -n "$provider_entry" ]; then
-  node "$provider_entry" --port "${BGUTIL_PROVIDER_PORT:-4416}" &
+  node "$provider_entry" --host 127.0.0.1 --port "${BGUTIL_PROVIDER_PORT:-4416}" &
   provider_pid="$!"
 fi
 

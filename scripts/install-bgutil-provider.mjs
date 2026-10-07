@@ -6,14 +6,18 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const renderDir = join(repoRoot, '.render');
-const configDir = join(renderDir, 'config');
+const renderDir = process.env.BGUTIL_INSTALL_DIR || join(repoRoot, '.render');
+const configDir = process.env.XDG_CONFIG_HOME || join(renderDir, 'config');
 const pluginPath = join(configDir, 'yt-dlp', 'plugins', 'bgutil-ytdlp-pot-provider.zip');
 const providerDir = join(renderDir, 'bgutil-ytdlp-pot-provider');
 const providerServerDir = join(providerDir, 'server');
-const providerZipUrl = 'https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/latest/download/bgutil-ytdlp-pot-provider.zip';
 const providerRepoUrl = 'https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git';
-const providerVersion = '1.3.1';
+const providerVersion = '2.0.1';
+const providerZipUrl = `https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/${providerVersion}/bgutil-ytdlp-pot-provider.zip`;
+
+if (Number(process.versions.node.split('.')[0]) < 22) {
+  throw new Error('The YouTube token provider requires Node.js 22 or later.');
+}
 
 await mkdir(dirname(pluginPath), { recursive: true });
 await download(providerZipUrl, pluginPath);
@@ -30,6 +34,8 @@ await run('git', [
   providerDir,
 ]);
 await run('npm', ['ci'], { cwd: providerServerDir });
+// Patch known transitive advisories in the upstream 2.0.1 lockfile.
+await run('npm', ['install', '--no-save', '--ignore-scripts', 'proxy-addr@2.0.8', 'source-map-js@1.2.2'], { cwd: providerServerDir });
 await run('npx', ['tsc'], { cwd: providerServerDir });
 
 console.log('bgutil YouTube PO token provider installed.');

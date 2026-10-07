@@ -1,6 +1,12 @@
 .git
 .expo
 .vercel
+.render
+.bin
+tmp
+android
+.env
+.env.*
 dist
 ios
 node_modules
