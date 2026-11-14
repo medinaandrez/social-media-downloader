@@ -12,7 +12,7 @@
     "android:sdk": "bash scripts/android-install-sdk.sh",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "web:export": "expo export --platform web",
+    "web:export": "expo export --platform web && node scripts/add-apple-touch-icon.mjs",
     "typecheck": "tsc --noEmit",
     "test:security": "tsx --test tests/security.test.ts",
     "smoke:api": "node scripts/smoke-api.mjs",
