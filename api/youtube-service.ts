@@ -99,7 +99,9 @@ function isResolveResponse(value: unknown): value is ResolveResponse {
     return false;
   }
 
-  const candidate = value as { ok?: unknown; error?: unknown; media?: unknown };
+  const candidate = value as { ok?: unknown; error?: unknown; media?: unknown; pending?: unknown; jobId?: unknown };
   return typeof candidate.ok === 'boolean'
-    && (candidate.ok ? Boolean(candidate.media) : typeof candidate.error === 'string');
+    && (candidate.ok
+      ? Boolean(candidate.media) || (candidate.pending === true && typeof candidate.jobId === 'string')
+      : typeof candidate.error === 'string');
 }

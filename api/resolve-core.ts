@@ -1,5 +1,5 @@
 import { extractWithYtDlp } from './extractors/ytdlp';
-import { ApifyYouTubeError, isApifyYouTubeConfigured, resolveWithApifyYouTube } from '../src/server/apify-youtube';
+import { ApifyYouTubeError, isApifyYouTubeConfigured, startApifyYouTube } from '../src/server/apify-youtube';
 import { readDedicatedYouTubeServiceConfig, resolveWithDedicatedYouTubeService } from './youtube-service';
 import { isSupportedPublicUrl } from '../src/shared/platforms';
 import type { Language, PlatformId, ResolveRequest, ResolveResponse } from '../src/shared/types';
@@ -72,8 +72,17 @@ export async function resolveMediaRequest(
 
   if (validation.platform === 'youtube' && isApifyYouTubeConfigured()) {
     try {
-      const media = await resolveWithApifyYouTube(validation.normalizedUrl, language);
-      return { status: 200, payload: { ok: true, media } };
+      const job = await startApifyYouTube(validation.normalizedUrl, language);
+      if (job.status === 'pending' && job.runId) {
+        return { status: 202, payload: { ok: true, pending: true, jobId: job.runId } };
+      }
+      if (job.status === 'failed') {
+        return { status: job.httpStatus, payload: { ok: false, error: job.error } };
+      }
+      if (job.status === 'succeeded') {
+        return { status: 200, payload: { ok: true, media: job.media } };
+      }
+      throw new ApifyYouTubeError('Apify did not return a usable run identifier', 502);
     } catch (error) {
       if (error instanceof ApifyYouTubeError) {
         return { status: error.status, payload: { ok: false, error: error.message } };
@@ -92,7 +101,7 @@ export async function resolveMediaRequest(
           platform: validation.platform,
           language,
         }, dedicatedService);
-        if (dedicatedResult.payload.ok) {
+        if (dedicatedResult.payload.ok && !('pending' in dedicatedResult.payload && dedicatedResult.payload.pending)) {
           return dedicatedResult;
         }
         console.warn('Dedicated YouTube service could not resolve the link; using Vercel fallback');

@@ -20,11 +20,20 @@ export async function resolveMedia(request: ResolveRequest) {
         },
         body: JSON.stringify(request),
       });
-      const payload = await response.json() as ResolveResponse;
+      let payload = await response.json() as ResolveResponse;
       if (!payload.ok) {
         throw new ResolveApiError(payload.error);
       }
-      return payload.media;
+      if ('pending' in payload && payload.pending) {
+        payload = await pollYouTubeJob(endpoint, payload.jobId, request);
+      }
+      if (!payload.ok) {
+        throw new ResolveApiError(payload.error);
+      }
+      if ('media' in payload) {
+        return payload.media;
+      }
+      throw new ResolveApiError(pendingTimeoutMessage(request.language ?? 'es'));
     } catch (error) {
       if (
         error instanceof ResolveApiError
@@ -40,6 +49,40 @@ export async function resolveMedia(request: ResolveRequest) {
   }
 
   return createLocalPreview(request);
+}
+
+async function pollYouTubeJob(endpoint: string, jobId: string, request: ResolveRequest): Promise<ResolveResponse> {
+  const maxAttempts = 100;
+  const pollIntervalMs = 3_000;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    await delay(pollIntervalMs);
+    const pollUrl = new URL(endpoint, typeof window === 'undefined' ? productionApiBaseUrl : window.location.origin);
+    pollUrl.searchParams.set('runId', jobId);
+    pollUrl.searchParams.set('url', request.url);
+    pollUrl.searchParams.set('language', request.language ?? 'es');
+
+    const response = await fetch(pollUrl.toString(), { cache: 'no-store' });
+    const payload = await response.json() as ResolveResponse;
+    if (!payload.ok) {
+      throw new ResolveApiError(payload.error);
+    }
+    if (!('pending' in payload) || !payload.pending) {
+      return payload;
+    }
+  }
+
+  throw new ResolveApiError(pendingTimeoutMessage(request.language ?? 'es'));
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function pendingTimeoutMessage(language: ResolveRequest['language']) {
+  return language === 'en'
+    ? 'YouTube is still preparing this video. Try resolving it again in a little while.'
+    : 'YouTube todavia esta preparando este video. Espera un poco y vuelve a intentarlo.';
 }
 
 class ResolveApiError extends Error {}

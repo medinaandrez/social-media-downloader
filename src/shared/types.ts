@@ -66,6 +66,11 @@ export type ResolveRequest = {
 export type ResolveResponse =
   | {
       ok: true;
+      pending: true;
+      jobId: string;
+    }
+  | {
+      ok: true;
       media: ResolvedMedia;
     }
   | {
