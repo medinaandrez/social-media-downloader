@@ -15,6 +15,36 @@ type DownloadParams = {
   language: Language;
 };
 
+export function canSaveWebVideoToPhotos(format: DownloadFormat) {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined' || typeof File === 'undefined') return false;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return isIOS && format.kind === 'video' && format.extension.toLowerCase() === 'mp4'
+    && typeof navigator.share === 'function'
+    && Boolean(navigator.canShare?.({ files: [new File([], 'video.mp4', { type: 'video/mp4' })] }));
+}
+
+export async function prepareWebVideoForPhotos(media: ResolvedMedia, format: DownloadFormat, language: Language) {
+  const name = fileNameFor(media, format);
+  const response = await fetch(webDownloadUrl(format.downloadUrl!, name, language));
+  if (!response.ok) throw new Error(await readErrorPayload(response, language) || t(language, 'genericError'));
+  const blob = await response.blob();
+  const file = new File([blob], name, { type: 'video/mp4' });
+  if (!file.size || !navigator.canShare?.({ files: [file] })) {
+    throw new Error(t(language, 'photosUnavailable'));
+  }
+  return file;
+}
+
+// Call directly from the second tap, before any asynchronous analytics or storage work.
+export function sharePreparedWebVideo(file: File) {
+  return navigator.share({ files: [file] });
+}
+
+export function savePreparedWebVideo(file: File) {
+  saveBrowserBlob(file, file.name);
+}
+
 export async function downloadResolvedFormat({ media, format, mode, language }: DownloadParams) {
   if (!format.downloadUrl) {
     throw new Error(t(language, 'noDownloadUrl'));
@@ -82,7 +112,11 @@ async function startBrowserDownload(url: string, fileName: string, language: Lan
     throw new Error(payload || `Download failed (${response.status})`);
   }
 
-  const objectUrl = URL.createObjectURL(await response.blob());
+  saveBrowserBlob(await response.blob(), fileName);
+}
+
+function saveBrowserBlob(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = objectUrl;
   anchor.download = fileName;

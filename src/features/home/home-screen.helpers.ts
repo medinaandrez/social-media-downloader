@@ -7,7 +7,7 @@ import type { DownloadFormat, Language, MediaKind, PlatformId, ResolvedMedia } f
 
 export const mediaKinds: MediaKind[] = ['video', 'audio'];
 
-export type ActionPhase = 'idle' | 'preparing' | 'audio';
+export type ActionPhase = 'idle' | 'preparing' | 'audio' | 'photos-ready';
 
 export function pickPreferredDownloadableFormat(formats: DownloadFormat[], kind: MediaKind) {
   return formats.find((format) => format.kind === kind && isDownloadableFormat(format))

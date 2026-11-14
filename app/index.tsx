@@ -142,6 +142,8 @@ export default function HomeScreen() {
         actionBusy={state.actionBusy}
         actionFormat={state.actionFormat}
         actionPhase={state.actionPhase}
+        photosEnabled={state.photosEnabled}
+        photosReady={state.photosReady}
         closeActionSheet={state.closeActionSheet}
         handleAction={state.handleAction}
         language={state.language}

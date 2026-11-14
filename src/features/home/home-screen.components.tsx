@@ -591,6 +591,8 @@ export function ActionSheet({
   actionBusy,
   actionFormat,
   actionPhase,
+  photosEnabled,
+  photosReady,
   closeActionSheet,
   handleAction,
   language,
@@ -599,7 +601,9 @@ export function ActionSheet({
 }: {
   actionBusy: boolean;
   actionFormat: DownloadFormat | null;
-  actionPhase: 'idle' | 'preparing' | 'audio';
+  actionPhase: 'idle' | 'preparing' | 'audio' | 'photos-ready';
+  photosEnabled: boolean;
+  photosReady: boolean;
   closeActionSheet: () => void;
   handleAction: (mode: 'save' | 'share') => Promise<void>;
   language: 'es' | 'en';
@@ -614,7 +618,7 @@ export function ActionSheet({
           <Text style={styles.actionBody}>
             {actionBusy
               ? t(language, actionPhase === 'audio' ? 'audioPreparingBody' : 'downloadPreparingBody')
-              : t(language, 'chooseActionBody')}
+              : t(language, photosEnabled ? photosReady ? 'photosReadyBody' : 'photosPrepareBody' : 'chooseActionBody')}
           </Text>
           {actionBusy ? (
             <View style={styles.busyPanel}>
@@ -630,7 +634,7 @@ export function ActionSheet({
                 style={[styles.sheetButton, actionBusy && styles.disabledButton]}
               >
                 <Download color={theme.colors.onAccent} size={20} />
-                <Text style={styles.sheetButtonText}>{t(language, 'save')}</Text>
+                <Text style={styles.sheetButtonText}>{t(language, photosEnabled ? photosReady ? 'saveToPhotos' : 'prepareVideo' : 'save')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -639,7 +643,7 @@ export function ActionSheet({
                 style={[styles.sheetButtonSecondary, actionBusy && styles.disabledButton]}
               >
                 <Share2 color={theme.colors.text} size={20} />
-                <Text style={styles.sheetButtonSecondaryText}>{t(language, 'share')}</Text>
+                <Text style={styles.sheetButtonSecondaryText}>{t(language, photosEnabled ? 'saveFile' : 'share')}</Text>
               </Pressable>
             </View>
           )}

@@ -4,7 +4,7 @@ import { Alert, Platform } from 'react-native';
 import { useAppState } from '@/context/AppState';
 import { t } from '@/i18n/translations';
 import { trackAnalyticsEvent } from '@/services/analytics';
-import { downloadResolvedFormat } from '@/services/downloads';
+import { canSaveWebVideoToPhotos, downloadResolvedFormat, prepareWebVideoForPhotos, savePreparedWebVideo, sharePreparedWebVideo } from '@/services/downloads';
 import { resolveMedia } from '@/services/resolver';
 import { detectPlatform } from '@/shared/platforms';
 import type { DownloadFormat, FailureReport, HistoryItem, MediaKind, PlatformId, Quality, ResolvedMedia } from '@/shared/types';
@@ -53,6 +53,8 @@ export function useHomeScreenState() {
   const [actionFormat, setActionFormat] = useState<DownloadFormat | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [actionPhase, setActionPhase] = useState<ActionPhase>('idle');
+  const [preparedPhotoVideo, setPreparedPhotoVideo] = useState<File | null>(null);
+  const photosEnabled = Boolean(actionFormat && canSaveWebVideoToPhotos(actionFormat));
 
   useEffect(() => {
     let mounted = true;
@@ -250,18 +252,21 @@ export function useHomeScreenState() {
 
   function handleOpenActions() {
     if (resolved && selectedFormat) {
+      setPreparedPhotoVideo(null);
       setActionPhase('idle');
       setActionFormat(selectedFormat);
     }
   }
 
   async function handleAction(mode: 'save' | 'share') {
-    if (!resolved || !actionFormat) {
+    if (!resolved || !actionFormat || actionBusy) {
       return;
     }
 
     const startedAt = Date.now();
-    await trackAnalyticsEvent({
+    const wantsPhotos = photosEnabled && mode === 'save';
+    const sharingPhotos = wantsPhotos && Boolean(preparedPhotoVideo);
+    if (!preparedPhotoVideo) void trackAnalyticsEvent({
       event: 'download_start',
       platform: resolved.platform,
       kind: actionFormat.kind,
@@ -272,9 +277,34 @@ export function useHomeScreenState() {
     setFlowPhase('preparing');
     setLastFailure(null);
     try {
-      await downloadResolvedFormat({ media: resolved, format: actionFormat, mode, language });
+      // Sharing must begin during the tap; awaiting analytics first loses Safari's user activation.
+      const sharing = sharingPhotos ? sharePreparedWebVideo(preparedPhotoVideo!) : null;
+      if (wantsPhotos && !preparedPhotoVideo) {
+        setPreparedPhotoVideo(await prepareWebVideoForPhotos(resolved, actionFormat, language));
+        void trackAnalyticsEvent({
+          event: 'download_success', platform: resolved.platform, kind: actionFormat.kind,
+          language, status: 'ok', durationMs: Date.now() - startedAt,
+        });
+        setActionPhase('photos-ready');
+        setFlowPhase('ready');
+        return;
+      }
+      if (sharing) {
+        await sharing;
+        setPreparedPhotoVideo(null);
+        setActionFormat(null);
+        setActionPhase('idle');
+        setFlowPhase('ready');
+        // iOS reports handoff, not whether the user saved to Photos.
+        return;
+      }
+      if (preparedPhotoVideo) {
+        savePreparedWebVideo(preparedPhotoVideo);
+      } else {
+        await downloadResolvedFormat({ media: resolved, format: actionFormat, mode: photosEnabled ? 'save' : mode, language });
+      }
       await addHistory(makeHistoryItem(resolved, actionFormat, 'downloaded'));
-      await trackAnalyticsEvent({
+      if (!preparedPhotoVideo) await trackAnalyticsEvent({
         event: 'download_success',
         platform: resolved.platform,
         kind: actionFormat.kind,
@@ -283,10 +313,18 @@ export function useHomeScreenState() {
         durationMs: Date.now() - startedAt,
       });
       setActionFormat(null);
+      setPreparedPhotoVideo(null);
       setActionPhase('idle');
       setFlowPhase('started');
-      Alert.alert(t(language, 'doneTitle'), doneMessageFor(mode, language));
+      Alert.alert(t(language, 'doneTitle'), doneMessageFor(photosEnabled ? 'save' : mode, language));
     } catch (error) {
+      if (sharingPhotos) {
+        setActionPhase('photos-ready');
+        setFlowPhase('ready');
+        if (error instanceof Error && error.name === 'AbortError') return;
+        Alert.alert(t(language, 'downloadErrorTitle'), t(language, 'photosUnavailable'));
+        return;
+      }
       const message = error instanceof Error ? error.message : t(language, 'genericError');
       await trackAnalyticsEvent({
         event: 'download_error',
@@ -315,6 +353,7 @@ export function useHomeScreenState() {
   }
 
   function closeActionSheet() {
+    setPreparedPhotoVideo(null);
     setActionPhase('idle');
     setActionFormat(null);
   }
@@ -468,6 +507,8 @@ export function useHomeScreenState() {
     actionBusy,
     actionFormat,
     actionPhase,
+    photosEnabled,
+    photosReady: Boolean(preparedPhotoVideo),
     applyClipboardSuggestion,
     canShowPreviewButton,
     canShowInstallCard,
